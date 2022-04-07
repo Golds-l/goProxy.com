@@ -52,23 +52,36 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 			} else {
 				fmt.Println(os.Args[i+1], "ip addr illegal")
 			}
-		case "-port":
+		case "-cloudServerPort":
 			if isPort(os.Args[i+1]) {
-				args["port"] = os.Args[i+1]
+				args["cloudServerPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
 			}
-		case "-p":
+		case "-cSP":
 			if isPort(os.Args[i+1]) {
-				args["port"] = os.Args[i+1]
+				args["cloudServerPort"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "port illegal")
+			}
+		case "-localhostPort":
+			if isPort(os.Args[i+1]) {
+				args["localhostPort"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "port illegal")
+			}
+		case "lP":
+			if isPort(os.Args[i+1]) {
+				args["localhostPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
 			}
 		}
 	}
 	_, addrExist := args["CloudServer"]
-	_, portExist := args["port"]
-	if addrExist && portExist {
+	_, cloudServerPortExist := args["cloudServerPort"]
+	_, localhostPortExist := args["localhostPort"]
+	if addrExist && cloudServerPortExist && localhostPortExist {
 		return args, true
 	} else {
 		return args, false
@@ -78,35 +91,35 @@ func GetArgsCloudServer() (map[string]string, bool) {
 	args := make(map[string]string)
 	for i := range os.Args {
 		switch os.Args[i] {
-		case "-portLocal":
+		case "-localPort":
 			if isPort(os.Args[i+1]) {
-				args["portLocal"] = os.Args[i+1]
+				args["localPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "local port illegal")
 			}
-		case "-portRemote":
+		case "-remotePort":
 			if isPort(os.Args[i+1]) {
-				args["portRemote"] = os.Args[i+1]
+				args["remotePort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "remote port illegal")
 			}
-		case "-pL":
+		case "-lP":
 			if isPort(os.Args[i+1]) {
-				args["portLocal"] = os.Args[i+1]
+				args["localPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "local port illegal")
 			}
-		case "-pR":
+		case "-rP":
 			if isPort(os.Args[i+1]) {
-				args["portRemote"] = os.Args[i+1]
+				args["remotePort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "remote port illegal")
 			}
 		}
 	}
-	_, portLocalExist := args["portLocal"]
-	_, portRemoteExist := args["portRemote"]
-	if portLocalExist && portRemoteExist && args["portLocal"] != args["portRemote"] {
+	_, portLocalExist := args["localPort"]
+	_, portRemoteExist := args["remotePort"]
+	if portLocalExist && portRemoteExist && args["localPort"] != args["remotePort"] {
 		return args, true
 	} else {
 		return args, false

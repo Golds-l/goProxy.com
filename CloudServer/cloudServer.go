@@ -38,11 +38,11 @@ func main() {
 		fmt.Println("args error")
 		os.Exit(0)
 	}
-	listenLocal, err := net.Listen("tcp", ":"+argsMap["portLocal"])
+	listenLocal, err := net.Listen("tcp", ":"+argsMap["localPort"])
 	if err != nil {
 		fmt.Println("err")
 	}
-	listenRemote, err := net.Listen("tcp", ":"+argsMap["portRemote"])
+	listenRemote, err := net.Listen("tcp", ":"+argsMap["remotePort"])
 	if err != nil {
 		fmt.Println("err")
 	}
