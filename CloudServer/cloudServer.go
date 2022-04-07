@@ -40,11 +40,11 @@ func main() {
 	}
 	listenLocal, err := net.Listen("tcp", ":"+argsMap["localPort"])
 	if err != nil {
-		fmt.Println("err")
+		fmt.Println("listen err", err)
 	}
 	listenRemote, err := net.Listen("tcp", ":"+argsMap["remotePort"])
 	if err != nil {
-		fmt.Println("err")
+		fmt.Println("listen err", err)
 	}
 	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
 	for {
