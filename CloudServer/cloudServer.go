@@ -46,14 +46,17 @@ func main() {
 	if err != nil {
 		fmt.Println("err")
 	}
-	fmt.Printf("begin listen... local port:%v remote port:%v", argsMap["localPort"], argsMap["remotePort"])
+	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
 	for {
 		cloudServerR, Err := listenRemote.Accept()
 		if Err != nil {
-			fmt.Println("err")
+			fmt.Println("listen accept error\n", Err)
 		}
 		fmt.Println("remote client connect...")
-		cloudServerL, _ := listenLocal.Accept()
+		cloudServerL, Err := listenLocal.Accept()
+		if Err != nil {
+			fmt.Println("listen accept error\n", Err)
+		}
 		fmt.Println("local client connect...\nall connect")
 		go CloudServerToLocal(cloudServerR, cloudServerL)
 		go LocalToCloudServer(cloudServerR, cloudServerL)
