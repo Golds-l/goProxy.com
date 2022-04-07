@@ -39,8 +39,6 @@ func main() {
 		fmt.Println("args illegal")
 		os.Exit(0)
 	}
-	fmt.Println(argsMap)
-	os.Exit(0)
 	address := argsMap["CloudServer"] + ":" + argsMap["port"]
 	ssh, _ := net.Dial("tcp", "127.0.0.1:22")
 	remote, _ := net.Dial("tcp", address)

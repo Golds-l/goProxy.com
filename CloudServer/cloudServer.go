@@ -38,8 +38,6 @@ func main() {
 		fmt.Println("args error")
 		os.Exit(0)
 	}
-	fmt.Println(":"+argsMap["portLocal"], ":"+argsMap["portRemote"])
-	os.Exit(0)
 	listenLocal, err := net.Listen("tcp", ":"+argsMap["portLocal"])
 	if err != nil {
 		fmt.Println("err")
