@@ -70,7 +70,7 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
 			}
-		case "lP":
+		case "-lP":
 			if isPort(os.Args[i+1]) {
 				args["localhostPort"] = os.Args[i+1]
 			} else {
