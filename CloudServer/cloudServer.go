@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		fmt.Println("err")
 	}
-	fmt.Println("begin listen")
+	fmt.Printf("begin listen... local port:%v remote port:%v", argsMap["localPort"], argsMap["remotePort"])
 	for {
 		cloudServerR, Err := listenRemote.Accept()
 		if Err != nil {
