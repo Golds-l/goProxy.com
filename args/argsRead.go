@@ -30,7 +30,7 @@ func isPort(port string) bool {
 		fmt.Println(err)
 		return false
 	}
-	if portInt > 65535 {
+	if portInt < 0 || portInt > 65535 {
 		return false
 	}
 	return true
