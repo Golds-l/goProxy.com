@@ -35,6 +35,8 @@ func CloudServerToRemoteClient(RemoteClient, SSHRemoteClient net.Conn) {
 
 func main() {
 	argsMap, ok := args.GetArgsRemoteClient()
+	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
+	fmt.Printf("localhostPort:%v\n", argsMap["localhostPort"])
 	if ok == false {
 		fmt.Println("args illegal")
 		os.Exit(0)

@@ -119,7 +119,7 @@ func GetArgsCloudServer() (map[string]string, bool) {
 	}
 	_, portLocalExist := args["localPort"]
 	_, portRemoteExist := args["remotePort"]
-	if portLocalExist && portRemoteExist && args["localPort"] == args["remotePort"] {
+	if portLocalExist && portRemoteExist && args["localPort"] != args["remotePort"] {
 		return args, true
 	} else {
 		return args, false
