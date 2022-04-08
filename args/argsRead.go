@@ -99,9 +99,9 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 		}
 	}
 	_, cloudServerAddrExist := args["CloudServer"]
-	_, localHostAddrExist := args["localHost"]
+	_, localHostAddrExist := args["remoteHost"]
 	_, cloudServerPortExist := args["cloudServerPort"]
-	_, localhostPortExist := args["localHostPort"]
+	_, localhostPortExist := args["remoteHostPort"]
 	if cloudServerAddrExist && cloudServerPortExist && localhostPortExist && localHostAddrExist {
 		return args, true
 	} else {
