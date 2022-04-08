@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var helpInfoClient = "this program run in remote machine\n-"
+
 func isAddr(ipv4Addr string) bool {
 	var addr = strings.Split(ipv4Addr, ".")
 	if len(addr) < 4 {
@@ -40,6 +42,12 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 	args := make(map[string]string)
 	for i := range os.Args {
 		switch os.Args[i] {
+		case "-h":
+			fmt.Println("this program run in remote machine\n-cS or -cloudServer\nserver address(ipv4 only)\n-cSP or -cloudServerPort\nserver port\n-rH or remoteHost\nLAN network address(ipv4 only)\n-rHP or -remoteHostPort\nLAN service port\nexp: ./remote -cS x.x.x.x -cSP 2000 -rH 127.0.0.1 -rHP 22 // ssh service")
+			os.Exit(0)
+		case "-help":
+			fmt.Println("this program run in remote machine\n-cS or -cloudServer\nserver address(ipv4 only)\n-cSP or -cloudServerPort\nserver port\n-rH or remoteHost\nLAN network address(ipv4 only)\n-rHP or -remoteHostPort\nLAN service port\nexp: ./remote -cS x.x.x.x -cSP 2000 -rH 127.0.0.1 -rHP 22 // ssh service")
+			os.Exit(0)
 		case "-CloudServer":
 			if isAddr(os.Args[i+1]) {
 				args["CloudServer"] = os.Args[i+1]
@@ -64,24 +72,37 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
 			}
-		case "-localhostPort":
+		case "-remoteHostPort":
 			if isPort(os.Args[i+1]) {
-				args["localhostPort"] = os.Args[i+1]
+				args["remoteHostPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
 			}
-		case "-lP":
+		case "-rHP":
 			if isPort(os.Args[i+1]) {
-				args["localhostPort"] = os.Args[i+1]
+				args["remoteHostPort"] = os.Args[i+1]
 			} else {
 				fmt.Println(os.Args[i+1], "port illegal")
+			}
+		case "-remoteHost":
+			if isAddr(os.Args[i+1]) {
+				args["remoteHost"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "ip addr illegal")
+			}
+		case "-rH":
+			if isAddr(os.Args[i+1]) {
+				args["remoteHost"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "ip addr illegal")
 			}
 		}
 	}
-	_, addrExist := args["CloudServer"]
+	_, cloudServerAddrExist := args["CloudServer"]
+	_, localHostAddrExist := args["localHost"]
 	_, cloudServerPortExist := args["cloudServerPort"]
-	_, localhostPortExist := args["localhostPort"]
-	if addrExist && cloudServerPortExist && localhostPortExist {
+	_, localhostPortExist := args["localHostPort"]
+	if cloudServerAddrExist && cloudServerPortExist && localhostPortExist && localHostAddrExist {
 		return args, true
 	} else {
 		return args, false
@@ -91,6 +112,12 @@ func GetArgsCloudServer() (map[string]string, bool) {
 	args := make(map[string]string)
 	for i := range os.Args {
 		switch os.Args[i] {
+		case "-h":
+			fmt.Println("this program run in server\n-rp or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
+			os.Exit(0)
+		case "-help":
+			fmt.Println("this program run in server\n-rp or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
+			os.Exit(0)
 		case "-localPort":
 			if isPort(os.Args[i+1]) {
 				args["localPort"] = os.Args[i+1]
