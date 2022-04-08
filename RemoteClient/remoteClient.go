@@ -36,13 +36,13 @@ func CloudServerToRemoteClient(RemoteClient, SSHRemoteClient net.Conn) {
 func main() {
 	argsMap, ok := args.GetArgsRemoteClient()
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
-	fmt.Printf("localhostPort:%v\n", argsMap["localhostPort"])
+	fmt.Printf("localhostPort:%v\n", argsMap["remoteHostPort"])
 	if ok == false {
 		fmt.Println("args illegal")
 		os.Exit(0)
 	}
 	addrCloud := argsMap["CloudServer"] + ":" + argsMap["cloudServerPort"]
-	addrLocal := argsMap["localHost"] + ":" + argsMap["localHostPort"]
+	addrLocal := argsMap["remoteHost"] + ":" + argsMap["remoteHostPort"]
 	ssh, _ := net.Dial("tcp", addrLocal)
 	remote, _ := net.Dial("tcp", addrCloud)
 	go RemoteClientToCloudServer(remote, ssh)
