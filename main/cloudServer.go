@@ -5,12 +5,12 @@ import (
 	"net"
 	"os"
 
-	"goProxy.com/communication"
-	"goProxy.com/other"
-	"goProxy.com/server"
+	"github.com/Golds-l/goproxy/communication"
+	"github.com/Golds-l/goproxy/other"
+	"github.com/Golds-l/goproxy/server"
 )
 
-func main() {
+func test() {
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
 		fmt.Println("args error")

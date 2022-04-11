@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-var helpInfoClient = "this program run in remote machine\n-"
-
 func isAddr(ipv4Addr string) bool {
 	var addr = strings.Split(ipv4Addr, ".")
 	if len(addr) < 4 {

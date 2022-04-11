@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"goProxy.com/other"
+	"github.com/Golds-l/goproxy/other"
 )
 
 func MakeNewClient(serverAddr, localAddr string) (net.Conn, net.Conn) {

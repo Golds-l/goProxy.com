@@ -5,9 +5,9 @@ import (
 	"net"
 	"os"
 
-	"goProxy.com/client"
-	"goProxy.com/communication"
-	"goProxy.com/other"
+	"github.com/Golds-l/goproxy/client"
+	"github.com/Golds-l/goproxy/communication"
+	"github.com/Golds-l/goproxy/other"
 )
 
 func main() {
