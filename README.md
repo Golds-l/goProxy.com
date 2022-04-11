@@ -1,4 +1,6 @@
-# 将内网设备通过公网服务器转发流量实现穿透
+# bug fixing...
+
+~~# 将内网设备通过公网服务器转发流量实现穿透~~
 local --- cloud --- remote
 ## Linux
 #### 远程客户端
@@ -15,3 +17,4 @@ cd goProxy.com/
 go build -o server goProxy.com/CloudServer
 ./server -rP xxx -lP xxx
 ```
+~~
