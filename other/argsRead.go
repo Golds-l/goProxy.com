@@ -1,4 +1,4 @@
-package args
+package other
 
 import (
 	"fmt"
