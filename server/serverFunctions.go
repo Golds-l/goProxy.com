@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 func MakeNewConn(communicationConn net.Conn, listener net.Listener) net.Conn {
@@ -15,4 +16,19 @@ func MakeNewConn(communicationConn net.Conn, listener net.Listener) net.Conn {
 		fmt.Printf("connection made error. %v\n", err)
 	}
 	return newConn
+}
+
+func KeepAliveS(conn net.Conn) {
+	cache := make([]byte, 1024)
+	for {
+		_, err := conn.Write([]byte("isAlive"))
+		if err != nil {
+			fmt.Println("communication connection err", err)
+		}
+		n, err := conn.Read(cache)
+		if string(cache[:n]) == "XX" {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+	}
 }

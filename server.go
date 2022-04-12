@@ -7,6 +7,7 @@ import (
 
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
+	"github.com/Golds-l/goproxy/server"
 )
 
 func main() {
@@ -24,18 +25,12 @@ func main() {
 		fmt.Println("listen err", err)
 	}
 	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
-	communicationConn, communicationConnErr := listenRemote.Accept()
-	other.HandleErr(communicationConnErr)
-	ACKCache := make([]byte, 1024)
-	n, _ := communicationConn.Read(ACKCache)
-	if string(ACKCache[:n]) == "RCReady" {
-		fmt.Println("cloud server --- remote client is connected!")
-	}
+	communicationConn := communication.EstablishCommunicationConnS(listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("connect from %v\n", connLocal.RemoteAddr())
 		other.HandleErr(connLocalErr)
-		connRemote := MakeNewConn(communicationConn, listenRemote)
+		connRemote := server.MakeNewConn(communicationConn, listenRemote)
 		go communication.CloudServerToLocal(connRemote, connLocal)
 		go communication.LocalToCloudServer(connRemote, connLocal)
 	}

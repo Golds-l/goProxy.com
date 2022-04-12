@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"net"
-	"os"
-
+	"github.com/Golds-l/goproxy/client"
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
+	"net"
+	"os"
 )
 
 func main() {
+	var communicationConn net.Conn
 	argsMap, ok := other.GetArgsRemoteClient()
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
 	fmt.Printf("host:%v\n", argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
@@ -19,21 +20,22 @@ func main() {
 	}
 	addrCloud := argsMap["CloudServer"] + ":" + argsMap["cloudServerPort"]
 	addrLocal := argsMap["remoteHost"] + ":" + argsMap["remoteHostPort"]
-	communicationConn, communicationConnErr := net.Dial("tcp", addrCloud)
-	other.HandleErr(communicationConnErr)
-	communicationConn.Write([]byte("RCReady"))
-	fmt.Println("client ready")
 	cache := make([]byte, 10240)
+	communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+	fmt.Println("client ready")
 	for {
 		n, readErr := communicationConn.Read(cache)
 		if readErr != nil {
 			fmt.Printf("%v\n", readErr)
-			continue
+			_ = communicationConn.Close()
+			communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 		}
 		if string(cache[:n]) == "NEWXX" {
-			connCloud, connLocal := MakeNewClient(addrCloud, addrLocal)
+			fmt.Println("cloud connected, connecting local end system")
+			connCloud, connLocal := client.MakeNewClient(addrCloud, addrLocal)
 			go communication.RemoteClientToCloudServer(connCloud, connLocal)
 			go communication.CloudServerToRemoteClient(connCloud, connLocal)
+			fmt.Println("connect build")
 		}
 	}
 }
