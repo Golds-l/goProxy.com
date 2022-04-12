@@ -12,7 +12,7 @@ func MakeNewClient(serverAddr, localAddr string) (net.Conn, net.Conn) {
 	other.HandleErr(err)
 	fmt.Println("make new client")
 	other.HandleErr(err)
-	connLocal, connLOcalErr := net.Dial("tcp", localAddr)
-	other.HandleErr(connLOcalErr)
+	connLocal, connLocalErr := net.Dial("tcp", localAddr)
+	other.HandleErr(connLocalErr)
 	return connServer, connLocal
 }
