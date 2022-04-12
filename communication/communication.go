@@ -44,8 +44,15 @@ func CloudServerToRemoteClient(RemoteClient, SSHRemoteClient net.Conn) {
 	}
 }
 
-func EstablishCommunicationConnC(addr string) net.Conn {
-	var communicationConn net.Conn
+func WriteAlive(conn *net.Conn, s string) {
+	for {
+		_, _ = (*conn).Write([]byte(s))
+		time.Sleep(3 * time.Second)
+	}
+}
+
+func EstablishCommunicationConnC(addr string) *net.Conn {
+	var communicationConn *net.Conn
 	communicationConnACK := make([]byte, 512)
 	for {
 		conn, connErr := net.Dial("tcp", addr)
@@ -61,9 +68,9 @@ func EstablishCommunicationConnC(addr string) net.Conn {
 			continue
 		}
 		if string(communicationConnACK[:n]) == "cloudXX" {
-			fmt.Println("established")
-			communicationConn = conn
-			_, _ = communicationConn.Write([]byte("RCReady"))
+			fmt.Println("connection established")
+			communicationConn = &conn
+			_, _ = (*communicationConn).Write([]byte("RCReady"))
 			break
 		}
 		_ = conn.Close()
@@ -71,8 +78,8 @@ func EstablishCommunicationConnC(addr string) net.Conn {
 	return communicationConn
 }
 
-func EstablishCommunicationConnS(serverListener net.Listener) net.Conn {
-	var communicationConn net.Conn
+func EstablishCommunicationConnS(serverListener net.Listener) *net.Conn {
+	var communicationConn *net.Conn
 	connACK := make([]byte, 512)
 	for {
 		conn, e := serverListener.Accept()
@@ -94,6 +101,7 @@ func EstablishCommunicationConnS(serverListener net.Listener) net.Conn {
 			_ = conn.Close()
 		}
 		if string(connACK[:n]) == "RCReady" {
+			communicationConn = &conn
 			fmt.Println("cloud server<--->remote client is connected!")
 			break
 		}

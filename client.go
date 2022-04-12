@@ -7,10 +7,11 @@ import (
 	"github.com/Golds-l/goproxy/other"
 	"net"
 	"os"
+	"time"
 )
 
 func main() {
-	var communicationConn net.Conn
+	var communicationConn *net.Conn
 	argsMap, ok := other.GetArgsRemoteClient()
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
 	fmt.Printf("host:%v\n", argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
@@ -23,12 +24,27 @@ func main() {
 	cache := make([]byte, 10240)
 	communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 	fmt.Println("client ready")
+	//go client.KeepAliveC(communicationConn, addrCloud)
 	for {
-		n, readErr := communicationConn.Read(cache)
+		n, readErr := (*communicationConn).Read(cache)
 		if readErr != nil {
-			fmt.Printf("%v\n", readErr)
-			_ = communicationConn.Close()
+			fmt.Printf("client communication connection read err. %v\n", readErr)
+			fmt.Println("close and reconnect in a second..")
+			_ = (*communicationConn).Close()
+			time.Sleep(1 * time.Second)
 			communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+			continue
+		}
+		if string(cache[:n]) == "isAlive" {
+			//fmt.Printf("server alive.. %v\n", time.Now())
+			_, writeErr := (*communicationConn).Write([]byte("alive"))
+			if writeErr != nil {
+				fmt.Printf("client communication connection write err. %v\n", writeErr)
+				fmt.Println("close and reconnect in a second..")
+				time.Sleep(1 * time.Second)
+				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+				continue
+			}
 		}
 		if string(cache[:n]) == "NEWXX" {
 			fmt.Println("cloud connected, connecting local end system")
