@@ -3,10 +3,35 @@ package communication
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/Golds-l/goproxy/other"
 )
+
+type Connection struct {
+	Conn          *net.Conn
+	Id            string
+	Communication bool
+}
+
+func (c *Connection) Write(s string) (int, error) {
+	conn := c.Conn
+	n, e := (*conn).Write([]byte(s))
+	return n, e
+}
+
+func (c *Connection) Close() error {
+	conn := c.Conn
+	e := (*conn).Close()
+	return e
+}
+
+func (c *Connection) Read(b []byte) (int, error) {
+	conn := c.Conn
+	n, e := (*conn).Read(b)
+	return n, e
+}
 
 func CloudServerToLocal(CloudServerR, CloudServerL net.Conn) {
 	defer other.CloseConn(CloudServerR, CloudServerL)
@@ -51,8 +76,44 @@ func WriteAlive(conn *net.Conn, s string) {
 	}
 }
 
-func EstablishCommunicationConnC(addr string) *net.Conn {
-	var communicationConn *net.Conn
+func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
+	var communicationConn Connection
+	connACK := make([]byte, 512)
+	for {
+		conn, acceptErr := serverListener.Accept()
+		if acceptErr != nil {
+			fmt.Println("Can not connect cloud server... Retry in a second")
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		communicationConn.Id = other.GenerateConnId()
+		mesg := "communication:" + communicationConn.Id + ":xy"
+		_, writeErr := conn.Write([]byte(mesg))
+		if writeErr != nil {
+			fmt.Printf("connection write err! %v\n", writeErr)
+			fmt.Printf("connection:%v will be closed\n", conn)
+			_ = conn.Close()
+		}
+		n, readErr := conn.Read(connACK)
+		if readErr != nil {
+			fmt.Printf("connection read err! %v\n", writeErr)
+			fmt.Printf("connection:%v will be closed\n", communicationConn.Id)
+			_ = conn.Close()
+		}
+		mesgACKSlice := strings.Split(string(connACK[:n]), ":")
+		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id {
+			communicationConn.Conn = &conn
+			communicationConn.Communication = true
+			fmt.Println("cloud server<--->remote client is connected!")
+			break
+		}
+		_ = conn.Close()
+	}
+	return &communicationConn
+}
+
+func EstablishCommunicationConnC(addr string) *Connection {
+	var communicationConn Connection
 	communicationConnACK := make([]byte, 512)
 	for {
 		conn, connErr := net.Dial("tcp", addr)
@@ -63,49 +124,29 @@ func EstablishCommunicationConnC(addr string) *net.Conn {
 		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {
-			fmt.Printf("coon read err!%v\n", readErr)
+			fmt.Printf("coonection read err!%v\n", readErr)
 			_ = conn.Close()
-			continue
-		}
-		if string(communicationConnACK[:n]) == "cloudXX" {
-			fmt.Println("connection established")
-			communicationConn = &conn
-			_, _ = (*communicationConn).Write([]byte("RCReady"))
-			break
-		}
-		_ = conn.Close()
-	}
-	return communicationConn
-}
-
-func EstablishCommunicationConnS(serverListener net.Listener) *net.Conn {
-	var communicationConn *net.Conn
-	connACK := make([]byte, 512)
-	for {
-		conn, e := serverListener.Accept()
-		if e != nil {
-			fmt.Println("Can not connect cloud server... Retry in a second")
+			fmt.Println("close and retry in a second")
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		_, writeErr := conn.Write([]byte("cloudXX"))
-		if writeErr != nil {
-			fmt.Printf("connection write err! %v\n", writeErr)
-			fmt.Printf("connection:%v will be closed\n", conn)
-			_ = conn.Close()
-		}
-		n, readErr := conn.Read(connACK)
-		if readErr != nil {
-			fmt.Printf("connection read err! %v\n", writeErr)
-			fmt.Printf("connection:%v will be closed\n", conn)
-			_ = conn.Close()
-		}
-		if string(connACK[:n]) == "RCReady" {
-			communicationConn = &conn
-			fmt.Println("cloud server<--->remote client is connected!")
+		mesSlice := strings.Split(string(communicationConnACK[:n]), ":")
+		if mesSlice[0] == "communication" && mesSlice[2] == "xy" {
+			communicationConn.Conn = &conn
+			communicationConn.Id = mesSlice[1]
+			communicationConn.Communication = true
+			_, writeErr := communicationConn.Write("RCReady:" + communicationConn.Id)
+			if writeErr != nil {
+				fmt.Printf("communication connection write error!%v\n", writeErr)
+				_ = conn.Close()
+				fmt.Println("close and retry in a second")
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			fmt.Printf("connection %v established\n", communicationConn.Id)
 			break
 		}
 		_ = conn.Close()
 	}
-	return communicationConn
+	return &communicationConn
 }

@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"os"
+
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
 	"github.com/Golds-l/goproxy/server"
-	"net"
-	"os"
 )
 
 func main() {
-	var communicationConn *net.Conn
+	var communicationConn *communication.Connection
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
 		fmt.Println("args error")
@@ -31,7 +32,7 @@ func main() {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("connect from %v\n", connLocal.RemoteAddr())
 		other.HandleErr(connLocalErr)
-		connRemote := server.MakeNewConn(communicationConn, listenRemote)
+		connRemote := server.MakeNewConn(communicationConn.Conn, listenRemote)
 		go communication.CloudServerToLocal(connRemote, connLocal)
 		go communication.LocalToCloudServer(connRemote, connLocal)
 	}

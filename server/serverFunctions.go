@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
-	"github.com/Golds-l/goproxy/communication"
 	"net"
 	"time"
+
+	"github.com/Golds-l/goproxy/communication"
 )
 
 func MakeNewConn(communicationConn *net.Conn, listener net.Listener) net.Conn {
@@ -19,30 +20,29 @@ func MakeNewConn(communicationConn *net.Conn, listener net.Listener) net.Conn {
 	return newConn
 }
 
-func KeepAliveS(conn *net.Conn, listener net.Listener) {
+func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 	cache := make([]byte, 1024)
-	//go communication.WriteAlive(conn, "isAlive")
 	for {
-		_, writeErr := (*conn).Write([]byte("isAlive"))
+		_, writeErr := conn.Write("isAlive")
 		if writeErr != nil {
 			fmt.Printf("server communication connection write err %v\n", writeErr)
 			fmt.Println("close and reconnect..")
 			time.Sleep(1 * time.Second)
-			_ = (*conn).Close()
+			_ = conn.Close()
 			conn = communication.EstablishCommunicationConnS(listener)
 			continue
 		}
-		n, readErr := (*conn).Read(cache)
+		n, readErr := conn.Read(cache)
 		if readErr != nil {
 			fmt.Printf("server communication connection read err %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			time.Sleep(1 * time.Second)
-			_ = (*conn).Close()
+			_ = conn.Close()
 			conn = communication.EstablishCommunicationConnS(listener)
 			continue
 		}
 		if string(cache[:n]) == "alive" {
-			fmt.Printf("server alive.. %v\n", time.Now())
+			fmt.Printf("communication %v alive.. %v\n", conn.Id, time.Now())
 		}
 		time.Sleep(3 * time.Second)
 	}
