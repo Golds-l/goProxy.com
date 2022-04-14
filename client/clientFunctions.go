@@ -24,7 +24,7 @@ func KeepAliveC(conn *communication.Connection, addr string) {
 	for {
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("client communication connection read err. %v\n", readErr)
+			fmt.Printf("communication connection read error. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			_ = conn.Close()
 			time.Sleep(1 * time.Second)
@@ -35,7 +35,7 @@ func KeepAliveC(conn *communication.Connection, addr string) {
 		}
 		_, writeErr := conn.Write("alive")
 		if writeErr != nil {
-			fmt.Printf("client communication connection %v write err. %v\n", conn.Id, writeErr)
+			fmt.Printf("communication connection %v write error. %v\n", conn.Id, writeErr)
 			fmt.Println("close and reconnect in a second..")
 			time.Sleep(1 * time.Second)
 			conn = communication.EstablishCommunicationConnC(addr)

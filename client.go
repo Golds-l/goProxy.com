@@ -18,7 +18,7 @@ func main() {
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
 	fmt.Printf("host:%v\n", argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
 	if !ok {
-		fmt.Println("args illegal")
+		fmt.Println("invalid option. Try '--help' for more information.")
 		os.Exit(0)
 	}
 	addrCloud := argsMap["CloudServer"] + ":" + argsMap["cloudServerPort"]
@@ -29,7 +29,7 @@ func main() {
 	for {
 		n, readErr := communicationConn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("client communication connection read err. %v\n", readErr)
+			fmt.Printf("communication connection read error. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			_ = communicationConn.Close()
 			time.Sleep(1 * time.Second)
@@ -41,7 +41,7 @@ func main() {
 			//fmt.Printf("server alive.. %v\n", time.Now())
 			_, writeErr := communicationConn.Write("alive")
 			if writeErr != nil {
-				fmt.Printf("client communication connection write err. %v\n", writeErr)
+				fmt.Printf("communication connection write error. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
@@ -54,7 +54,7 @@ func main() {
 			conn.Id = mesgSlice[1]
 			_, writeErr := communicationConn.Write("NEW:" + mesgSlice[1])
 			if writeErr != nil {
-				fmt.Printf("client communication connection write err. %v\n", writeErr)
+				fmt.Printf("communication connection write error. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)

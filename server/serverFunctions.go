@@ -35,7 +35,7 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 	for {
 		_, writeErr := conn.Write("isAlive")
 		if writeErr != nil {
-			fmt.Printf("server communication connection write err %v\n", writeErr)
+			fmt.Printf("server communication connection write error. %v\n", writeErr)
 			fmt.Println("close and reconnect..")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
@@ -44,7 +44,7 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 		}
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("server communication connection read err %v\n", readErr)
+			fmt.Printf("server communication connection read error. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()

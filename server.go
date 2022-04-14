@@ -15,23 +15,27 @@ func main() {
 	var connections []*communication.Connection
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
-		fmt.Println("args error")
+		fmt.Println("invalid option. Try '--help' for more information.")
 		os.Exit(0)
 	}
 	listenLocal, err := net.Listen("tcp", ":"+argsMap["localPort"])
 	if err != nil {
-		fmt.Println("listen err", err)
+		fmt.Println("tcp server listen error.", err)
+		fmt.Println("please check the address and port! system exit..")
+		os.Exit(0)
 	}
 	listenRemote, err := net.Listen("tcp", ":"+argsMap["remotePort"])
 	if err != nil {
-		fmt.Println("listen err", err)
+		fmt.Println("tcp server listen error.", err)
+		fmt.Println("please check the address and port! system exit..")
+		os.Exit(0)
 	}
 	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
 	communicationConn = communication.EstablishCommunicationConnS(listenRemote)
 	go server.KeepAliveS(communicationConn, listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
-		fmt.Printf("connection from %v\n", connLocal.RemoteAddr())
+		fmt.Printf("connection from %v.\n", connLocal.RemoteAddr())
 		other.HandleErr(connLocalErr)
 		connRemote, mkErr := server.MakeNewConn(communicationConn, listenRemote)
 		if mkErr != nil {
