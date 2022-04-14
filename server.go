@@ -12,6 +12,7 @@ import (
 
 func main() {
 	var communicationConn *communication.Connection
+	var connections []*communication.Connection
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
 		fmt.Println("args error")
@@ -30,10 +31,17 @@ func main() {
 	go server.KeepAliveS(communicationConn, listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
-		fmt.Printf("connect from %v\n", connLocal.RemoteAddr())
+		fmt.Printf("connection from %v\n", connLocal.RemoteAddr())
 		other.HandleErr(connLocalErr)
-		connRemote := server.MakeNewConn(communicationConn.Conn, listenRemote)
-		go communication.CloudServerToLocal(connRemote, connLocal)
-		go communication.LocalToCloudServer(connRemote, connLocal)
+		connRemote, mkErr := server.MakeNewConn(communicationConn, listenRemote)
+		if mkErr != nil {
+			connLocal.Close()
+			continue
+		}
+		go communication.CloudServerToLocal(*connRemote.Conn, connLocal)
+		go communication.LocalToCloudServer(*connRemote.Conn, connLocal)
+		fmt.Printf("connection %v etablished.\n", connRemote.Id)
+		connections = append(connections, connRemote)
+		fmt.Println(connections)
 	}
 }

@@ -13,6 +13,7 @@ type Connection struct {
 	Conn          *net.Conn
 	Id            string
 	Communication bool
+	StartTime     int64
 }
 
 func (c *Connection) Write(s string) (int, error) {
@@ -104,6 +105,7 @@ func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
 		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id {
 			communicationConn.Conn = &conn
 			communicationConn.Communication = true
+			communicationConn.StartTime = time.Now().Unix()
 			fmt.Println("cloud server<--->remote client is connected!")
 			break
 		}
@@ -135,6 +137,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 			communicationConn.Conn = &conn
 			communicationConn.Id = mesSlice[1]
 			communicationConn.Communication = true
+			communicationConn.StartTime = time.Now().Unix()
 			_, writeErr := communicationConn.Write("RCReady:" + communicationConn.Id)
 			if writeErr != nil {
 				fmt.Printf("communication connection write error!%v\n", writeErr)

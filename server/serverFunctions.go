@@ -3,21 +3,31 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/Golds-l/goproxy/communication"
+	"github.com/Golds-l/goproxy/other"
 )
 
-func MakeNewConn(communicationConn *net.Conn, listener net.Listener) net.Conn {
-	_, err := (*communicationConn).Write([]byte("NEWXX")) // make new connection
-	if err != nil {
-		fmt.Printf("client connection error. %v\n", err)
+func MakeNewConn(communicationConn *communication.Connection, listener net.Listener) (*communication.Connection, error) {
+	readCache := make([]byte, 256)
+	var conn communication.Connection
+	conn.Id = other.GenerateConnId()
+	_, _ = communicationConn.Write("NEWC:" + conn.Id) // make new connection
+	n, _ := communicationConn.Read(readCache)
+	mesgSlice := strings.Split(string(readCache[:n]), ":")
+	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
+		newConn, newConnectionErr := listener.Accept()
+		if newConnectionErr != nil {
+			fmt.Printf("connection etablished error. %v\n", newConnectionErr)
+			return nil, newConnectionErr
+		}
+		conn.Conn = &newConn
+		conn.Communication = false
+		conn.StartTime = time.Now().Unix()
 	}
-	newConn, newConnectionErr := listener.Accept()
-	if newConnectionErr != nil {
-		fmt.Printf("connection made error. %v\n", err)
-	}
-	return newConn
+	return &conn, nil
 }
 
 func KeepAliveS(conn *communication.Connection, listener net.Listener) {
