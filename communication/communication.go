@@ -2,11 +2,11 @@ package communication
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
+	"strconv"
 	"strings"
 	"time"
-
-	"github.com/Golds-l/goproxy/other"
 )
 
 type Connection struct {
@@ -14,11 +14,21 @@ type Connection struct {
 	Id            string
 	Communication bool
 	StartTime     int64
+	Alive         bool
 }
 
-func (c *Connection) Write(s string) (int, error) {
+func GenerateRandomInt() int64 {
+	rand.Seed(time.Now().Unix())
+	return rand.Int63()
+}
+
+func GenerateConnId() string {
+	return strconv.FormatInt(GenerateRandomInt(), 10)
+}
+
+func (c *Connection) Write(s []byte) (int, error) {
 	conn := c.Conn
-	n, e := (*conn).Write([]byte(s))
+	n, e := (*conn).Write(s)
 	return n, e
 }
 
@@ -32,42 +42,6 @@ func (c *Connection) Read(b []byte) (int, error) {
 	conn := c.Conn
 	n, e := (*conn).Read(b)
 	return n, e
-}
-
-func CloudServerToLocal(CloudServerR, CloudServerL net.Conn) {
-	defer other.CloseConn(CloudServerR, CloudServerL)
-	for {
-		cache := make([]byte, 10240)
-		readNum, _ := CloudServerR.Read(cache)
-		_, _ = CloudServerL.Write(cache[:readNum])
-	}
-}
-
-func LocalToCloudServer(CloudServerR, CloudServerL net.Conn) {
-	defer other.CloseConn(CloudServerR, CloudServerL)
-	for {
-		cache := make([]byte, 10240)
-		readNum, _ := CloudServerL.Read(cache)
-		_, _ = CloudServerR.Write(cache[:readNum])
-	}
-}
-
-func RemoteClientToCloudServer(RemoteClient, SSHRemoteClient net.Conn) {
-	defer other.CloseConn(RemoteClient, SSHRemoteClient)
-	for {
-		cache := make([]byte, 10240)
-		readNum, _ := SSHRemoteClient.Read(cache)
-		_, _ = RemoteClient.Write(cache[:readNum])
-	}
-}
-
-func CloudServerToRemoteClient(RemoteClient, SSHRemoteClient net.Conn) {
-	defer other.CloseConn(RemoteClient, SSHRemoteClient)
-	for {
-		cache := make([]byte, 10240)
-		readNum, _ := RemoteClient.Read(cache)
-		_, _ = SSHRemoteClient.Write(cache[:readNum])
-	}
 }
 
 func WriteAlive(conn *net.Conn, s string) {
@@ -87,17 +61,17 @@ func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
 			time.Sleep(1 * time.Second)
 			continue
 		}
-		communicationConn.Id = other.GenerateConnId()
+		communicationConn.Id = GenerateConnId()
 		mesg := "communication:" + communicationConn.Id + ":xy"
 		_, writeErr := conn.Write([]byte(mesg))
 		if writeErr != nil {
-			fmt.Printf("connection write error! %v\n", writeErr)
+			fmt.Printf("connection write err! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", conn)
 			_ = conn.Close()
 		}
 		n, readErr := conn.Read(connACK)
 		if readErr != nil {
-			fmt.Printf("connection read error! %v\n", writeErr)
+			fmt.Printf("connection read err! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", communicationConn.Id)
 			_ = conn.Close()
 		}
@@ -106,7 +80,7 @@ func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
 			communicationConn.Conn = &conn
 			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
-			fmt.Println("cloud server<--->remote client is connected!")
+			fmt.Printf("cloud server<--->remote client is connected!\nid:%v\n", communicationConn.Id)
 			break
 		}
 		_ = conn.Close()
@@ -126,7 +100,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {
-			fmt.Printf("coonection read error!%v\n", readErr)
+			fmt.Printf("coonection read err!%v\n", readErr)
 			_ = conn.Close()
 			fmt.Println("close and retry in a second")
 			time.Sleep(1 * time.Second)
@@ -138,7 +112,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 			communicationConn.Id = mesSlice[1]
 			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
-			_, writeErr := communicationConn.Write("RCReady:" + communicationConn.Id)
+			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id))
 			if writeErr != nil {
 				fmt.Printf("communication connection write error!%v\n", writeErr)
 				_ = conn.Close()

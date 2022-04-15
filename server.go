@@ -12,40 +12,39 @@ import (
 
 func main() {
 	var communicationConn *communication.Connection
-	var connections []*communication.Connection
+	var connections []*server.CloudConnection
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
-		fmt.Println("invalid option. Try '--help' for more information.")
+		fmt.Println("args error")
 		os.Exit(0)
 	}
 	listenLocal, err := net.Listen("tcp", ":"+argsMap["localPort"])
 	if err != nil {
-		fmt.Println("tcp server listen error.", err)
-		fmt.Println("please check the address and port! system exit..")
-		os.Exit(0)
+		fmt.Println("listen err", err)
 	}
 	listenRemote, err := net.Listen("tcp", ":"+argsMap["remotePort"])
 	if err != nil {
-		fmt.Println("tcp server listen error.", err)
-		fmt.Println("please check the address and port! system exit..")
-		os.Exit(0)
+		fmt.Println("listen err", err)
 	}
 	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
 	communicationConn = communication.EstablishCommunicationConnS(listenRemote)
 	go server.KeepAliveS(communicationConn, listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
-		fmt.Printf("connection from %v.\n", connLocal.RemoteAddr())
-		other.HandleErr(connLocalErr)
-		connRemote, mkErr := server.MakeNewConn(communicationConn, listenRemote)
-		if mkErr != nil {
-			connLocal.Close()
+		fmt.Printf("connection from %v\n", connLocal.RemoteAddr())
+		if connLocalErr != nil {
+			fmt.Printf("connection from %v error!\n.close and listening", connLocal.RemoteAddr())
 			continue
 		}
-		go communication.CloudServerToLocal(*connRemote.Conn, connLocal)
-		go communication.LocalToCloudServer(*connRemote.Conn, connLocal)
-		fmt.Printf("connection %v etablished.\n", connRemote.Id)
-		connections = append(connections, connRemote)
+		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal)
+		if mkErr != nil {
+			_ = conn.Close()
+			continue
+		}
+		go conn.LocalToCloudServer()
+		go conn.CloudServerToLocal()
+		fmt.Printf("connection etablished. id: %v\n", conn.Id)
+		connections = append(connections, *conn)
 		fmt.Println(connections)
 	}
 }

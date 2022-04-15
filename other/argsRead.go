@@ -2,11 +2,9 @@ package other
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"strconv"
 	"strings"
-	"time"
 )
 
 func isAddr(ipv4Addr string) bool {
@@ -151,13 +149,4 @@ func GetArgsCloudServer() (map[string]string, bool) {
 	} else {
 		return args, false
 	}
-}
-
-func GenerateRandomInt() int64 {
-	rand.Seed(time.Now().Unix())
-	return rand.Int63()
-}
-
-func GenerateConnId() string {
-	return strconv.FormatInt(GenerateRandomInt(), 10)
 }

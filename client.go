@@ -13,12 +13,12 @@ import (
 
 func main() {
 	var communicationConn *communication.Connection
-	var connections []*communication.Connection
+	var connections []*client.RemoteConnection
 	argsMap, ok := other.GetArgsRemoteClient()
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
 	fmt.Printf("host:%v\n", argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
 	if !ok {
-		fmt.Println("invalid option. Try '--help' for more information.")
+		fmt.Println("args illegal")
 		os.Exit(0)
 	}
 	addrCloud := argsMap["CloudServer"] + ":" + argsMap["cloudServerPort"]
@@ -29,7 +29,7 @@ func main() {
 	for {
 		n, readErr := communicationConn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("communication connection read error. %v\n", readErr)
+			fmt.Printf("client communication connection read err. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			_ = communicationConn.Close()
 			time.Sleep(1 * time.Second)
@@ -38,10 +38,9 @@ func main() {
 		}
 		mesg := string(cache[:n])
 		if mesg == "isAlive" {
-			//fmt.Printf("server alive.. %v\n", time.Now())
-			_, writeErr := communicationConn.Write("alive")
+			_, writeErr := communicationConn.Write([]byte("alive"))
 			if writeErr != nil {
-				fmt.Printf("communication connection write error. %v\n", writeErr)
+				fmt.Printf("client communication connection write err. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
@@ -50,23 +49,24 @@ func main() {
 		}
 		mesgSlice := strings.Split(string(cache[:n]), ":")
 		if mesgSlice[0] == "NEWC" {
-			var conn communication.Connection
-			conn.Id = mesgSlice[1]
-			_, writeErr := communicationConn.Write("NEW:" + mesgSlice[1])
+			_, writeErr := communicationConn.Write([]byte("NEW:" + mesgSlice[1]))
 			if writeErr != nil {
-				fmt.Printf("communication connection write error. %v\n", writeErr)
+				fmt.Printf("client communication connection write err. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
 			}
 			fmt.Println("cloud connection established, connecting local end system")
-			connCloud, connLocal := client.MakeNewClient(addrCloud, addrLocal)
-			go communication.RemoteClientToCloudServer(connCloud, connLocal)
-			go communication.CloudServerToRemoteClient(connCloud, connLocal)
-			conn.Conn = &connLocal
+			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1])
+			if mkErr != nil {
+				fmt.Println("can not establish connection to the local end system process,please check the port.")
+				os.Exit(0)
+			}
+			go conn.RemoteClientToCloudServer()
+			go conn.CloudServerToRemoteClient()
 			fmt.Println("local end system connection established")
-			connections = append(connections, &conn)
+			connections = append(connections, conn)
 		}
 	}
 }

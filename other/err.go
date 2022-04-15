@@ -2,13 +2,14 @@ package other
 
 import (
 	"fmt"
-	"net"
+
+	"github.com/Golds-l/goproxy/server"
 )
 
-func CloseConn(conn1, conn2 net.Conn) {
+func CloseConn(conn1, conn2 *server.CloudConnection) {
 	err1, err2 := conn1.Close(), conn2.Close()
 	if err1 != nil || err2 != nil {
-		fmt.Println("connect close err")
+		fmt.Printf("connect close error.%v %v", err1, err2)
 	}
 }
 
