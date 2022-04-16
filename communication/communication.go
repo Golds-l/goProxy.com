@@ -51,8 +51,7 @@ func WriteAlive(conn *net.Conn, s string) {
 	}
 }
 
-func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
-	var communicationConn Connection
+func EstablishCommunicationConnS(serverListener net.Listener, communicationConn *Connection) {
 	connACK := make([]byte, 512)
 	for {
 		conn, acceptErr := serverListener.Accept()
@@ -85,7 +84,6 @@ func EstablishCommunicationConnS(serverListener net.Listener) *Connection {
 		}
 		_ = conn.Close()
 	}
-	return &communicationConn
 }
 
 func EstablishCommunicationConnC(addr string) *Connection {

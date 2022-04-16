@@ -58,7 +58,10 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 	readCache := make([]byte, 256)
 	var conn CloudConnection
 	conn.Id = communication.GenerateConnId()
-	_, _ = communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new connection
+	_, writeErr := communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new Connection
+	if writeErr != nil {
+		fmt.Println(writeErr)
+	}
 	n, _ := communicationConn.Read(readCache)
 	mesgSlice := strings.Split(string(readCache[:n]), ":")
 	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
@@ -72,8 +75,11 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 		conn.ConnRemote = &newConn
 		conn.Alive = true
 		conn.StartTime = time.Now().Unix()
+		return &conn, nil
+	} else {
+		fmt.Println(mesgSlice, "wrong mesg")
+		return nil, errors.New("wrong mesg")
 	}
-	return &conn, nil
 }
 
 func KeepAliveS(conn *communication.Connection, listener net.Listener) {
@@ -85,16 +91,16 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 			fmt.Println("close and reconnect in a second...")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
-			conn = communication.EstablishCommunicationConnS(listener)
+			communication.EstablishCommunicationConnS(listener, conn)
 			continue
 		}
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
 			fmt.Printf("server communication connection read err %v\n", readErr)
-			fmt.Println("close and reconnect in a second..")
+			fmt.Println("close and reconnecting..")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
-			conn = communication.EstablishCommunicationConnS(listener)
+			communication.EstablishCommunicationConnS(listener, conn)
 			continue
 		}
 		if string(cache[:n]) == "alive" {

@@ -25,7 +25,7 @@ func main() {
 	addrLocal := argsMap["remoteHost"] + ":" + argsMap["remoteHostPort"]
 	cache := make([]byte, 10240)
 	communicationConn = communication.EstablishCommunicationConnC(addrCloud)
-	fmt.Println("client ready")
+	fmt.Println("client ready!")
 	for {
 		n, readErr := communicationConn.Read(cache)
 		if readErr != nil {

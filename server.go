@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	var communicationConn *communication.Connection
+	var communicationConn = new(communication.Connection)
 	var connections []*server.CloudConnection
 	var aliveNum int
 	argsMap, ok := other.GetArgsCloudServer()
@@ -28,7 +28,7 @@ func main() {
 		fmt.Println("listen err", err)
 	}
 	fmt.Printf("begin listen... local port:%v remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
-	communicationConn = communication.EstablishCommunicationConnS(listenRemote)
+	communication.EstablishCommunicationConnS(listenRemote, communicationConn)
 	go server.KeepAliveS(communicationConn, listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
@@ -39,8 +39,13 @@ func main() {
 		}
 		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal)
 		if mkErr != nil {
-			_ = conn.Close()
-			continue
+			fmt.Println("in")
+			if conn != nil {
+				_ = conn.Close()
+				continue
+			} else {
+				continue
+			}
 		}
 		go conn.LocalToCloudServer()
 		go conn.CloudServerToLocal()
