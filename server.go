@@ -13,6 +13,7 @@ import (
 func main() {
 	var communicationConn *communication.Connection
 	var connections []*server.CloudConnection
+	var aliveNum int
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok { // need update
 		fmt.Println("args error")
@@ -45,7 +46,7 @@ func main() {
 		go conn.CloudServerToLocal()
 		fmt.Printf("connection etablished. id: %v\n", conn.Id)
 		connections = append(connections, conn)
-		aliveNum := server.CheckAlive(connections)
-		fmt.Printf("connections num: %v\n%v\n", aliveNum, connections)
+		aliveNum, connections = server.CheckAlive(connections)
+		fmt.Printf("connections num: %v\n", aliveNum)
 	}
 }

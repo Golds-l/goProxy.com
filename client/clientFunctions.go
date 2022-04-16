@@ -18,7 +18,6 @@ type RemoteConnection struct {
 }
 
 func (conn *RemoteConnection) RemoteClientToCloudServer() {
-	defer CloseRemoteConnection(conn)
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
 	cache := make([]byte, 4096)
 	for {
@@ -47,7 +46,7 @@ func (conn *RemoteConnection) Close() error {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
 	connCloudCloseErr, connProCloseErr := connCloud.Close(), connPro.Close()
 	if connCloudCloseErr != nil || connProCloseErr != nil {
-		return errors.New("remote connection close err")
+		return errors.New(connCloudCloseErr.Error() + "/n" + connProCloseErr.Error())
 	} else {
 		return nil
 	}
@@ -92,9 +91,9 @@ func KeepAliveC(conn *communication.Connection, addr string) {
 func CloseRemoteConnection(conn *RemoteConnection) {
 	err := conn.Close()
 	if err != nil {
-		fmt.Printf("remote connection close error! %v", err)
+		fmt.Printf("remote connection close error! %v\n", err)
 	} else {
 		conn.Alive = false
-		fmt.Printf("%v closed.", conn.Id)
+		fmt.Printf("%v closed.\n", conn.Id)
 	}
 }

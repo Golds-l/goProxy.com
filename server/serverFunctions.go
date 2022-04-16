@@ -81,8 +81,8 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 	for {
 		_, writeErr := conn.Write([]byte("isAlive"))
 		if writeErr != nil {
-			fmt.Printf("server communication connection write err %v\n", writeErr)
-			fmt.Println("close and reconnect..")
+			fmt.Printf("communication connection write err %v\n", writeErr)
+			fmt.Println("close and reconnect in a second...")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
 			conn = communication.EstablishCommunicationConnS(listener)
@@ -114,19 +114,14 @@ func CloseCloudConnection(conn *CloudConnection) {
 	}
 }
 
-func CheckAlive(conns []*CloudConnection) int {
-	var num int
-	var length = len(conns)
-	fmt.Println(length)
-	// for i := range conns {
-	// 	if i == length-1 && !conns[i].Alive {
-	// 		conns = conns[:i]
-	// 	}
-	// 	if i < length-1 && !conns[i].Alive {
-	// 		conns = append(conns[:i], conns[i+1:]...)
-	// 	} else {
-	// 		num += 1
-	// 	}
-	// }
-	return num
+func CheckAlive(conns []*CloudConnection) (int, []*CloudConnection) {
+	var newConns []*CloudConnection
+	for i := range conns {
+		if conns[i].Alive {
+			newConns = append(newConns, conns[i])
+		} else {
+			continue
+		}
+	}
+	return len(newConns), newConns
 }
