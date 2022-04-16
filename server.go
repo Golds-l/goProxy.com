@@ -44,7 +44,8 @@ func main() {
 		go conn.LocalToCloudServer()
 		go conn.CloudServerToLocal()
 		fmt.Printf("connection etablished. id: %v\n", conn.Id)
-		connections = append(connections, *conn)
-		fmt.Println(connections)
+		connections = append(connections, conn)
+		aliveNum := server.CheckAlive(connections)
+		fmt.Printf("connections num: %v\n%v\n", aliveNum, connections)
 	}
 }

@@ -113,3 +113,20 @@ func CloseCloudConnection(conn *CloudConnection) {
 		fmt.Printf("%v closed.\n", conn.Id)
 	}
 }
+
+func CheckAlive(conns []*CloudConnection) int {
+	var num int
+	var length = len(conns)
+	fmt.Println(length)
+	// for i := range conns {
+	// 	if i == length-1 && !conns[i].Alive {
+	// 		conns = conns[:i]
+	// 	}
+	// 	if i < length-1 && !conns[i].Alive {
+	// 		conns = append(conns[:i], conns[i+1:]...)
+	// 	} else {
+	// 		num += 1
+	// 	}
+	// }
+	return num
+}
