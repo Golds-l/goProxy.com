@@ -64,13 +64,13 @@ func EstablishCommunicationConnS(serverListener net.Listener, communicationConn 
 		mesg := "communication:" + communicationConn.Id + ":xy"
 		_, writeErr := conn.Write([]byte(mesg))
 		if writeErr != nil {
-			fmt.Printf("connection write err! %v\n", writeErr)
+			fmt.Printf("connection write error! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", conn)
 			_ = conn.Close()
 		}
 		n, readErr := conn.Read(connACK)
 		if readErr != nil {
-			fmt.Printf("connection read err! %v\n", writeErr)
+			fmt.Printf("connection read error! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", communicationConn.Id)
 			_ = conn.Close()
 		}
@@ -98,7 +98,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {
-			fmt.Printf("coonection read err!%v\n", readErr)
+			fmt.Printf("coonection read error!%v\n", readErr)
 			_ = conn.Close()
 			fmt.Println("close and retry in a second")
 			time.Sleep(1 * time.Second)
@@ -118,7 +118,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			fmt.Printf("connection %v established\n", communicationConn.Id)
+			fmt.Printf("Connection established. Id: %v\n", communicationConn.Id)
 			break
 		}
 		_ = conn.Close()

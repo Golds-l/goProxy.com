@@ -25,11 +25,11 @@ func main() {
 	addrLocal := argsMap["remoteHost"] + ":" + argsMap["remoteHostPort"]
 	cache := make([]byte, 10240)
 	communicationConn = communication.EstablishCommunicationConnC(addrCloud)
-	fmt.Println("client ready!")
+	fmt.Println("connected to the server!")
 	for {
 		n, readErr := communicationConn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("client communication connection read err. %v\n", readErr)
+			fmt.Printf("client communication connection read error. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			_ = communicationConn.Close()
 			time.Sleep(1 * time.Second)
@@ -40,7 +40,7 @@ func main() {
 		if mesg == "isAlive" {
 			_, writeErr := communicationConn.Write([]byte("alive"))
 			if writeErr != nil {
-				fmt.Printf("client communication connection write err. %v\n", writeErr)
+				fmt.Printf("client communication connection write error. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
@@ -51,7 +51,7 @@ func main() {
 		if mesgSlice[0] == "NEWC" {
 			_, writeErr := communicationConn.Write([]byte("NEW:" + mesgSlice[1]))
 			if writeErr != nil {
-				fmt.Printf("client communication connection write err. %v\n", writeErr)
+				fmt.Printf("client communication connection write error. %v\n", writeErr)
 				fmt.Println("close and reconnect in a second..")
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
@@ -60,7 +60,7 @@ func main() {
 			fmt.Println("cloud connection established, connecting local end system")
 			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1])
 			if mkErr != nil {
-				fmt.Println("can not establish connection to the local end system process,please check the port.")
+				fmt.Println("can not establish connection to the local end system process, please check the port.")
 				os.Exit(0)
 			}
 			go conn.RemoteClientToCloudServer()

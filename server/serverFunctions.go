@@ -70,7 +70,7 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 			fmt.Printf("connection etablished error. %v\n", newConnectionErr)
 			return nil, newConnectionErr
 		}
-		fmt.Println("establishing remote..")
+		fmt.Println("Establish a connection with a remote client..")
 		conn.ConnLocal = &connLocal
 		conn.ConnRemote = &newConn
 		conn.Alive = true
@@ -96,7 +96,7 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 		}
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("server communication connection read err %v\n", readErr)
+			fmt.Printf("server communication connection read error %v\n", readErr)
 			fmt.Println("close and reconnecting..")
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
@@ -113,10 +113,10 @@ func KeepAliveS(conn *communication.Connection, listener net.Listener) {
 func CloseCloudConnection(conn *CloudConnection) {
 	err := conn.Close()
 	if err != nil {
-		fmt.Printf("cloud connection close error! %v\n", err)
+		fmt.Printf("Cloud connection close error! %v\n", err)
 	} else {
 		conn.Alive = false
-		fmt.Printf("%v closed.\n", conn.Id)
+		fmt.Printf("Connection closed. Id: %v\n", conn.Id)
 	}
 }
 
