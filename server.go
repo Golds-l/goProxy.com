@@ -39,7 +39,7 @@ func main() {
 			fmt.Printf("Connection from %v error!\n.", connLocal.RemoteAddr())
 			continue
 		}
-		conn, mkErr := server.MakeNewConn(communicationC onn, listenRemote, connLocal)
+		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal)
 		if mkErr != nil {
 			if conn != nil {
 				_ = conn.Close()
