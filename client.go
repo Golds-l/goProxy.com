@@ -63,8 +63,8 @@ func main() {
 				fmt.Println("can not establish connection to the local end system process, please check the port.")
 				os.Exit(0)
 			}
-			go conn.RemoteClientToCloudServer()
 			go conn.CloudServerToRemoteClient()
+			go conn.RemoteClientToCloudServer()
 			fmt.Println("local end system connection established")
 			connections = append(connections, conn)
 		}

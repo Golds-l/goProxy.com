@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
@@ -36,7 +37,7 @@ func main() {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("Connection from %v\n", connLocal.RemoteAddr())
 		if connLocalErr != nil {
-			fmt.Printf("Connection from %v error!\n.", connLocal.RemoteAddr())
+			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().String())
 			continue
 		}
 		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal)
