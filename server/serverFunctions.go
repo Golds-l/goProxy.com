@@ -77,8 +77,8 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 		conn.StartTime = time.Now().Unix()
 		return &conn, nil
 	} else {
-		fmt.Println(mesgSlice, "wrong mesg")
-		return nil, errors.New("wrong mesg")
+		fmt.Println(mesgSlice, "can not establish with remote client.")
+		return nil, errors.New("remote client error")
 	}
 }
 
