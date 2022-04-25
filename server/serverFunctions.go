@@ -19,26 +19,26 @@ type CloudConnection struct {
 }
 
 func (conn *CloudConnection) CloudServerToLocal() {
-	cache := make([]byte, 4096)
+	cache := make([]byte, 1440)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connRemote.Read(cache)
 		_, writeErr := connLocal.Write(cache[:readNum])
 		if writeErr != nil || readErr != nil {
-			break
+			return
 		}
 	}
 }
 
 func (conn *CloudConnection) LocalToCloudServer() {
 	defer CloseCloudConnection(conn)
-	cache := make([]byte, 4096)
+	cache := make([]byte, 1440)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connLocal.Read(cache)
 		_, writeErr := connRemote.Write(cache[:readNum])
 		if writeErr != nil || readErr != nil {
-			break
+			return
 		}
 	}
 }
@@ -114,9 +114,10 @@ func CloseCloudConnection(conn *CloudConnection) {
 	err := conn.Close()
 	if err != nil {
 		fmt.Printf("Cloud connection close error! %v\n", err)
+		conn.Alive = false
 	} else {
 		conn.Alive = false
-		fmt.Printf("Connection closed. Id: %v\n", conn.Id)
+		fmt.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
 

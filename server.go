@@ -30,14 +30,15 @@ func main() {
 		fmt.Println("listen error, please check the port.", err)
 		os.Exit(0)
 	}
-	fmt.Printf("Start listening... Local client connection port:%v Remote client connection port:%v\n", argsMap["localPort"], argsMap["remotePort"])
+	fmt.Printf("Start listening. Local port:%v Remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
+	fmt.Printf("time: %v\n", time.Now().Format("2006-01-02 15:04:05"))
 	communication.EstablishCommunicationConnS(listenRemote, communicationConn)
 	go server.KeepAliveS(communicationConn, listenRemote)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
-		fmt.Printf("Connection from %v\n", connLocal.RemoteAddr())
+		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 		if connLocalErr != nil {
-			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().String())
+			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 			connLocal.Close()
 			continue
 		}
@@ -50,9 +51,9 @@ func main() {
 				continue
 			}
 		}
-		go conn.LocalToCloudServer()
 		go conn.CloudServerToLocal()
-		fmt.Printf("Connection etablished. id: %v\n", conn.Id)
+		go conn.LocalToCloudServer()
+		fmt.Printf("Connection etablished. Id: %v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 		connections = append(connections, conn)
 		aliveNum, connections = server.CheckAlive(connections)
 		fmt.Printf("Number of connections: %v\n", aliveNum)

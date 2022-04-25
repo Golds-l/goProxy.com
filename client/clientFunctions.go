@@ -19,12 +19,12 @@ type RemoteConnection struct {
 
 func (conn *RemoteConnection) RemoteClientToCloudServer() {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 4096)
+	cache := make([]byte, 1440)
 	for {
 		readNum, connProReadErr := connPro.Read(cache)
 		_, connCloudWriteErr := connCloud.Write(cache[:readNum])
 		if connProReadErr != nil || connCloudWriteErr != nil {
-			break
+			return
 		}
 	}
 }
@@ -32,12 +32,12 @@ func (conn *RemoteConnection) RemoteClientToCloudServer() {
 func (conn *RemoteConnection) CloudServerToRemoteClient() {
 	defer CloseRemoteConnection(conn)
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 4096)
+	cache := make([]byte, 1440)
 	for {
 		readNum, connProReadErr := connCloud.Read(cache)
 		_, connCloudWriteErr := connPro.Write(cache[:readNum])
 		if connProReadErr != nil || connCloudWriteErr != nil {
-			break
+			return
 		}
 	}
 }
