@@ -46,8 +46,10 @@ func main() {
 		if mkErr != nil {
 			if conn != nil {
 				_ = conn.Close()
+				connLocal.Close()
 				continue
 			} else {
+				connLocal.Close()
 				continue
 			}
 		}
