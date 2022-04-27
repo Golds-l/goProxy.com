@@ -35,6 +35,10 @@ func (conn *RemoteConnection) CloudServerToRemoteClient() {
 	cache := make([]byte, 1440)
 	for {
 		readNum, connProReadErr := connCloud.Read(cache)
+		if string(cache[:readNum]) == "XYEOF" {
+			connCloud.Write(cache[:readNum])
+			return
+		}
 		_, connCloudWriteErr := connPro.Write(cache[:readNum])
 		if connProReadErr != nil || connCloudWriteErr != nil {
 			return

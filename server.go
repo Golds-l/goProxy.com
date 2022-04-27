@@ -53,8 +53,9 @@ func main() {
 				continue
 			}
 		}
-		go conn.CloudServerToLocal()
-		go conn.LocalToCloudServer()
+		q := make(chan int)
+		go conn.CloudServerToLocal(q)
+		go conn.LocalToCloudServer(q)
 		fmt.Printf("Connection etablished. Id: %v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 		connections = append(connections, conn)
 		aliveNum, connections = server.CheckAlive(connections)

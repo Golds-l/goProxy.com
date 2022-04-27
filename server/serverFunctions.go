@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"time"
@@ -18,26 +19,41 @@ type CloudConnection struct {
 	Alive      bool
 }
 
-func (conn *CloudConnection) CloudServerToLocal() {
+func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 	cache := make([]byte, 1440)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
-		readNum, readErr := connRemote.Read(cache)
-		_, writeErr := connLocal.Write(cache[:readNum])
-		if writeErr != nil || readErr != nil {
+		select {
+		case <-q:
 			return
+		default:
+			readNum, readErr := connRemote.Read(cache)
+			if string(cache[:readNum]) == "XYEOF" {
+				continue
+			}
+			_, writeErr := connLocal.Write(cache[:readNum])
+			if writeErr != nil || readErr != nil {
+				fmt.Println(writeErr, readErr)
+				return
+			}
 		}
 	}
 }
 
-func (conn *CloudConnection) LocalToCloudServer() {
+func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 	defer CloseCloudConnection(conn)
 	cache := make([]byte, 1440)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connLocal.Read(cache)
+		if readErr == io.EOF {
+			_, _ = connRemote.Write([]byte("XYEOF"))
+			q <- 1
+			return
+		}
 		_, writeErr := connRemote.Write(cache[:readNum])
 		if writeErr != nil || readErr != nil {
+			fmt.Println(writeErr, readErr)
 			return
 		}
 	}
