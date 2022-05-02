@@ -31,6 +31,10 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 			if string(cache[:readNum]) == "XYEOF" {
 				continue
 			}
+			if readErr == io.EOF {
+				CloseCloudConnection(conn)
+				return
+			}
 			_, writeErr := connLocal.Write(cache[:readNum])
 			if writeErr != nil || readErr != nil {
 				fmt.Println(writeErr, readErr)
@@ -41,7 +45,6 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 }
 
 func (conn *CloudConnection) LocalToCloudServer(q chan int) {
-	defer CloseCloudConnection(conn)
 	cache := make([]byte, 1440)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
@@ -49,6 +52,7 @@ func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 		if readErr == io.EOF {
 			_, _ = connRemote.Write([]byte("XYEOF"))
 			q <- 1
+			CloseCloudConnection(conn)
 			return
 		}
 		_, writeErr := connRemote.Write(cache[:readNum])
@@ -138,7 +142,7 @@ func CloseCloudConnection(conn *CloudConnection) {
 }
 
 func CheckAlive(conns []*CloudConnection) (int, []*CloudConnection) {
-	var newConns []*CloudConnection
+	var newConns = make([]*CloudConnection, 0, 15)
 	for i := range conns {
 		if conns[i].Alive {
 			newConns = append(newConns, conns[i])

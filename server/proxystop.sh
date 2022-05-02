@@ -1,5 +1,5 @@
 #!/bin/bash
-string=$(ps -ef | grep bin/server)
+string=$(ps -ef | grep server)
 array=(`echo $string | tr ' ' ' '` )
 echo ${array[1]}
 kill -9 ${array[1]}
