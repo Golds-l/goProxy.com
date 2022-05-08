@@ -37,6 +37,7 @@ func main() {
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
+		//test git
 		if connLocalErr != nil {
 			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 			connLocal.Close()
