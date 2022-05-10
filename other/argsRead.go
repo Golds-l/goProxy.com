@@ -111,10 +111,10 @@ func GetArgsCloudServer() (map[string]string, bool) {
 	for i := range os.Args {
 		switch os.Args[i] {
 		case "-h":
-			fmt.Println("this program run in server\n-rp or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
+			fmt.Println("this program run in server\n-rP or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
 			os.Exit(0)
 		case "-help":
-			fmt.Println("this program run in server\n-rp or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
+			fmt.Println("this program run in server\n-rP or -remotePort\nport for remote client\n-lP or -localPort\nport for connector")
 			os.Exit(0)
 		case "-localPort":
 			if isPort(os.Args[i+1]) {

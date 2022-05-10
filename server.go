@@ -16,7 +16,7 @@ func main() {
 	var connections []*server.CloudConnection
 	var aliveNum int
 	argsMap, ok := other.GetArgsCloudServer()
-	if !ok { // need update
+	if !ok {
 		fmt.Println("args error")
 		os.Exit(0)
 	}
@@ -39,6 +39,11 @@ func main() {
 		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 		if connLocalErr != nil {
 			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
+			if connLocalErr != nil {
+				fmt.Println(connLocalErr)
+			} else {
+				fmt.Println("unknow ip!", connLocal.RemoteAddr())
+			}
 			connLocal.Close()
 			continue
 		}
