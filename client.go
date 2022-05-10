@@ -66,7 +66,7 @@ func main() {
 			}
 			go conn.RemoteClientToCloudServer()
 			go conn.CloudServerToRemoteClient()
-			fmt.Printf("local end system connection established. Id:%v. Time:%v", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
+			fmt.Printf("local end system connection established. Id:%v. Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			connections = append(connections, conn)
 		}
 	}

@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ -e "./proxy.log" ]; then
     echo 
 else

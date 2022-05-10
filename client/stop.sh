@@ -1,3 +1,4 @@
+#!/bin/bash
 string=$(ps -ef | grep ./client)
 array=(`echo $string | tr ' ' ' '` )
 echo ${array[1]}
