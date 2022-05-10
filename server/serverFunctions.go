@@ -83,8 +83,13 @@ func (conn *CloudConnection) Close() error {
 	connLocalCloseErr := connLocal.Close()
 	connRemoteCloseErr := connRemote.Close()
 	if connRemoteCloseErr != nil || connLocalCloseErr != nil {
-		err := connLocalCloseErr.Error() + connRemoteCloseErr.Error()
-		return errors.New(err)
+		if connRemoteCloseErr == nil {
+			return connLocalCloseErr
+		} else if connLocalCloseErr == nil {
+			return connRemoteCloseErr
+		} else {
+			return errors.New(connLocalCloseErr.Error() + "\n" + connRemoteCloseErr.Error())
+		}
 	} else {
 		return nil
 	}
