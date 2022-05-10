@@ -31,13 +31,18 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 			if string(cache[:readNum]) == "XYEOF" {
 				continue
 			}
-			if readErr == io.EOF {
-				CloseCloudConnection(conn)
+			if readErr != nil {
+				if conn != nil {
+					CloseCloudConnection(conn)
+				}
 				return
 			}
 			_, writeErr := connLocal.Write(cache[:readNum])
-			if writeErr != nil || readErr != nil {
+			if writeErr != nil {
 				fmt.Println(writeErr, readErr)
+				if conn != nil {
+					CloseCloudConnection(conn)
+				}
 				return
 			}
 		}
@@ -55,9 +60,19 @@ func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 			CloseCloudConnection(conn)
 			return
 		}
+		if readErr != nil {
+			fmt.Println(readErr)
+			if conn != nil {
+				CloseCloudConnection(conn)
+			}
+			return
+		}
 		_, writeErr := connRemote.Write(cache[:readNum])
-		if writeErr != nil || readErr != nil {
-			fmt.Println(writeErr, readErr)
+		if writeErr != nil {
+			fmt.Println(writeErr)
+			if conn != nil {
+				CloseCloudConnection(conn)
+			}
 			return
 		}
 	}

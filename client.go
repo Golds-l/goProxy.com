@@ -34,6 +34,7 @@ func main() {
 			_ = communicationConn.Close()
 			time.Sleep(1 * time.Second)
 			communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+			fmt.Println("reconnect successfully!")
 			continue
 		}
 		mesg := string(cache[:n])
@@ -65,7 +66,7 @@ func main() {
 			}
 			go conn.RemoteClientToCloudServer()
 			go conn.CloudServerToRemoteClient()
-			fmt.Println("local end system connection established")
+			fmt.Printf("local end system connection established. Id:%v. Time:%v", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			connections = append(connections, conn)
 		}
 	}

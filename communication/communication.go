@@ -88,13 +88,19 @@ func EstablishCommunicationConnS(serverListener net.Listener, communicationConn 
 
 func EstablishCommunicationConnC(addr string) *Connection {
 	var communicationConn Connection
+	var isLog = false
 	communicationConnACK := make([]byte, 512)
 	for {
 		conn, connErr := net.Dial("tcp", addr)
 		if connErr != nil {
-			fmt.Println("Can not connect cloud server... Retry in a second")
+			if !isLog {
+				fmt.Println("Can not connect cloud server... Retrying")
+			}
+			isLog = true
 			time.Sleep(1 * time.Second)
 			continue
+		} else {
+			isLog = false
 		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {

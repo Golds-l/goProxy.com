@@ -38,7 +38,7 @@ func main() {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 		if connLocalErr != nil {
-			fmt.Printf("Connection from %v error! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
+			fmt.Printf("Connection from %v refused! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 			if connLocalErr != nil {
 				fmt.Println(connLocalErr)
 			} else {
@@ -65,5 +65,8 @@ func main() {
 		connections = append(connections, conn)
 		aliveNum, connections = server.CheckAlive(connections)
 		fmt.Printf("Number of connections: %v\n", aliveNum)
+		for _, v := range connections {
+			fmt.Println(v.Id, v.Alive)
+		}
 	}
 }
