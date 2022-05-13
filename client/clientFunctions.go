@@ -75,23 +75,37 @@ func (conn *RemoteConnection) Close() error {
 func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) {
 	var conn RemoteConnection
 	connServer, connServerErr := net.Dial("tcp", serverAddr)
+	ack := make([]byte, 1024)
 	if connServerErr != nil {
 		return nil, connServerErr
 	}
-	connLocal, connLocalErr := net.Dial("tcp", localAddr)
-	if connLocalErr != nil {
-		return nil, connLocalErr
-	}
 	_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
 	if serverWriteErr != nil {
+		_ = connServer.Close()
 		return nil, serverWriteErr
 	}
-	conn.Id = id
-	conn.ConnCloud = &connServer
-	conn.ConnProcess = &connLocal
-	conn.StartTime = time.Now().Unix()
-	conn.Alive = true
-	return &conn, nil
+	n, readErr := connServer.Read(ack)
+	if readErr != nil {
+		_ = connServer.Close()
+		return nil, errors.New("read error when establish connection")
+	}
+	if string(ack[:n]) == id+":xy"+":wode" {
+		fmt.Println("connect local service")
+		connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
+		if connLocalErr != nil {
+			_ = connServer.Close()
+			return nil, connLocalErr
+		}
+		conn.Id = id
+		conn.ConnCloud = &connServer
+		conn.ConnProcess = &connLocal
+		conn.StartTime = time.Now().Unix()
+		conn.Alive = true
+		return &conn, nil
+	} else {
+		_ = connServer.Close()
+		return nil, errors.New(fmt.Sprintf("wrong mesg from%v", connServer.RemoteAddr().String()))
+	}
 }
 
 func KeepAliveC(conn *communication.Connection, addr string) {
