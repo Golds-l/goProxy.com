@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"strings"
 	"time"
@@ -28,27 +27,12 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 			return
 		default:
 			readNum, readErr := connRemote.Read(cache)
-			if string(cache[:readNum]) == "XYEOF" {
-				continue
-			}
-			if readErr == io.EOF {
-				CloseCloudConnection(conn)
-				return
-			}
 			if readErr != nil {
-				fmt.Println("cloud to local", readErr)
-				if conn != nil {
-					CloseCloudConnection(conn)
-				}
-				return
+				continue
 			}
 			_, writeErr := connLocal.Write(cache[:readNum])
 			if writeErr != nil {
-				fmt.Println("cloud to local", writeErr)
-				if conn != nil {
-					CloseCloudConnection(conn)
-				}
-				return
+				continue
 			}
 		}
 	}
@@ -59,25 +43,15 @@ func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connLocal.Read(cache)
-		if readErr == io.EOF {
-			_, _ = connRemote.Write([]byte("XYEOF"))
-			q <- 1
-			CloseCloudConnection(conn)
-			return
-		}
 		if readErr != nil {
-			fmt.Println("local to cloud", readErr)
-			if conn != nil {
-				CloseCloudConnection(conn)
-			}
+			CloseCloudConnection(conn)
+			q <- 1
 			return
 		}
 		_, writeErr := connRemote.Write(cache[:readNum])
 		if writeErr != nil {
-			fmt.Println("local to cloud", writeErr)
-			if conn != nil {
-				CloseCloudConnection(conn)
-			}
+			CloseCloudConnection(conn)
+			q <- 1
 			return
 		}
 	}
