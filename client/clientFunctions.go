@@ -17,30 +17,46 @@ type RemoteConnection struct {
 	Alive       bool
 }
 
-func (conn *RemoteConnection) RemoteClientToCloudServer() {
+func (conn *RemoteConnection) RemoteClientToCloudServer(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
 	cache := make([]byte, 1440)
 	for {
-		readNum, connProReadErr := connPro.Read(cache)
-		_, connCloudWriteErr := connCloud.Write(cache[:readNum])
-		if connProReadErr != nil || connCloudWriteErr != nil {
+		select {
+		case <-q:
 			return
+		default:
+			readNum, connProReadErr := connPro.Read(cache)
+			if connProReadErr != nil {
+				continue
+			}
+			_, connCloudWriteErr := connCloud.Write(cache[:readNum])
+			if connCloudWriteErr != nil {
+				continue
+			}
 		}
 	}
 }
 
-func (conn *RemoteConnection) CloudServerToRemoteClient() {
-	defer CloseRemoteConnection(conn)
+func (conn *RemoteConnection) CloudServerToRemoteClient(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
 	cache := make([]byte, 1440)
 	for {
 		readNum, connProReadErr := connCloud.Read(cache)
 		if string(cache[:readNum]) == "XYEOF" {
 			connCloud.Write(cache[:readNum])
+			q <- 1
+			CloseRemoteConnection(conn)
+			return
+		}
+		if connProReadErr != nil {
+			q <- 1
+			CloseRemoteConnection(conn)
 			return
 		}
 		_, connCloudWriteErr := connPro.Write(cache[:readNum])
-		if connProReadErr != nil || connCloudWriteErr != nil {
+		if connCloudWriteErr != nil {
+			q <- 1
+			CloseRemoteConnection(conn)
 			return
 		}
 	}
@@ -50,7 +66,13 @@ func (conn *RemoteConnection) Close() error {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
 	connCloudCloseErr, connProCloseErr := connCloud.Close(), connPro.Close()
 	if connCloudCloseErr != nil || connProCloseErr != nil {
-		return errors.New(connCloudCloseErr.Error() + "/n" + connProCloseErr.Error())
+		if connCloudCloseErr == nil {
+			return connProCloseErr
+		} else if connProCloseErr == nil {
+			return connCloudCloseErr
+		} else {
+			return errors.New(connCloudCloseErr.Error() + "\n" + connProCloseErr.Error())
+		}
 	} else {
 		return nil
 	}
@@ -58,14 +80,24 @@ func (conn *RemoteConnection) Close() error {
 
 func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) {
 	var conn RemoteConnection
-	connServer, _ := net.Dial("tcp", serverAddr)
+	connServer, connServerErr := net.Dial("tcp", serverAddr)
+	if connServerErr != nil {
+		return nil, connServerErr
+	}
 	connLocal, connLocalErr := net.Dial("tcp", localAddr)
+	if connLocalErr != nil {
+		return nil, connLocalErr
+	}
+	_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
+	if serverWriteErr != nil {
+		return nil, serverWriteErr
+	}
 	conn.Id = id
 	conn.ConnCloud = &connServer
 	conn.ConnProcess = &connLocal
 	conn.StartTime = time.Now().Unix()
 	conn.Alive = true
-	return &conn, connLocalErr
+	return &conn, nil
 }
 
 func KeepAliveC(conn *communication.Connection, addr string) {
@@ -95,9 +127,9 @@ func KeepAliveC(conn *communication.Connection, addr string) {
 func CloseRemoteConnection(conn *RemoteConnection) {
 	err := conn.Close()
 	if err != nil {
-		fmt.Printf("remote connection close error! %v\n", err)
+		fmt.Printf("remote connection close error! Id:%v\n%v\n", conn.Id, err)
 	} else {
 		conn.Alive = false
-		fmt.Printf("%v closed.\n", conn.Id)
+		fmt.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 	}
 }

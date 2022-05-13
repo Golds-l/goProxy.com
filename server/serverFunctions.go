@@ -31,7 +31,12 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 			if string(cache[:readNum]) == "XYEOF" {
 				continue
 			}
+			if readErr == io.EOF {
+				CloseCloudConnection(conn)
+				return
+			}
 			if readErr != nil {
+				fmt.Println("cloud to local", readErr)
 				if conn != nil {
 					CloseCloudConnection(conn)
 				}
@@ -39,7 +44,7 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 			}
 			_, writeErr := connLocal.Write(cache[:readNum])
 			if writeErr != nil {
-				fmt.Println(writeErr, readErr)
+				fmt.Println("cloud to local", writeErr)
 				if conn != nil {
 					CloseCloudConnection(conn)
 				}
@@ -61,7 +66,7 @@ func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 			return
 		}
 		if readErr != nil {
-			fmt.Println(readErr)
+			fmt.Println("local to cloud", readErr)
 			if conn != nil {
 				CloseCloudConnection(conn)
 			}
@@ -69,7 +74,7 @@ func (conn *CloudConnection) LocalToCloudServer(q chan int) {
 		}
 		_, writeErr := connRemote.Write(cache[:readNum])
 		if writeErr != nil {
-			fmt.Println(writeErr)
+			fmt.Println("local to cloud", writeErr)
 			if conn != nil {
 				CloseCloudConnection(conn)
 			}
@@ -102,23 +107,42 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 	_, writeErr := communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new Connection
 	if writeErr != nil {
 		fmt.Println(writeErr)
+		return nil, errors.New("communication connection write error")
 	}
-	n, _ := communicationConn.Read(readCache)
+	n, communicationReadErr := communicationConn.Read(readCache)
+	if communicationReadErr != nil {
+		fmt.Println(writeErr)
+		return nil, errors.New("communication connection write error")
+	}
 	mesgSlice := strings.Split(string(readCache[:n]), ":")
 	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
+		ack := make([]byte, 1024)
 		newConn, newConnectionErr := listener.Accept()
 		if newConnectionErr != nil {
 			fmt.Printf("connection etablished error. %v\n", newConnectionErr)
+			_ = newConn.Close()
 			return nil, newConnectionErr
 		}
-		fmt.Println("Establish a connection with a remote client..")
-		conn.ConnLocal = &connLocal
-		conn.ConnRemote = &newConn
-		conn.Alive = true
-		conn.StartTime = time.Now().Unix()
-		return &conn, nil
+		n, readErr := newConn.Read(ack)
+		if readErr != nil {
+			_ = newConn.Close()
+			return nil, errors.New("read error, connection establist failed.")
+		}
+		mesgStr := string(ack[:n])
+		if mesgStr == conn.Id+":xy" {
+			fmt.Println("Establish a connection with a remote client..")
+			conn.ConnLocal = &connLocal
+			conn.ConnRemote = &newConn
+			conn.Alive = true
+			conn.StartTime = time.Now().Unix()
+			return &conn, nil
+		} else {
+			_ = newConn.Close()
+			fmt.Printf("unknow ip, refused! %v\n", newConn.RemoteAddr().String())
+			return nil, errors.New("unkonw ip")
+		}
 	} else {
-		fmt.Println(mesgSlice, "can not establish with remote client.")
+		fmt.Println(mesgSlice, "can not establish with remote client. wrong mesg")
 		return nil, errors.New("remote client error")
 	}
 }

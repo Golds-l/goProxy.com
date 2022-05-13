@@ -47,6 +47,7 @@ func main() {
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
 			}
+			continue
 		}
 		mesgSlice := strings.Split(string(cache[:n]), ":")
 		if mesgSlice[0] == "NEWC" {
@@ -58,15 +59,16 @@ func main() {
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
 			}
-			fmt.Println("cloud connection established, connecting local end system")
+			fmt.Println("receive new connection request, establish connection..")
 			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1])
 			if mkErr != nil {
-				fmt.Println("can not establish connection to the local end system process, please check the port.")
-				os.Exit(0)
+				fmt.Println("can not establish connection.", mkErr)
+				continue
 			}
-			go conn.RemoteClientToCloudServer()
-			go conn.CloudServerToRemoteClient()
-			fmt.Printf("local end system connection established. Id:%v. Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
+			q := make(chan int)
+			go conn.RemoteClientToCloudServer(q)
+			go conn.CloudServerToRemoteClient(q)
+			fmt.Printf("connection established. Id:%v. Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			connections = append(connections, conn)
 		}
 	}

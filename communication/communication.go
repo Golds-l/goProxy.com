@@ -75,7 +75,7 @@ func EstablishCommunicationConnS(serverListener net.Listener, communicationConn 
 			_ = conn.Close()
 		}
 		mesgACKSlice := strings.Split(string(connACK[:n]), ":")
-		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id {
+		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id && mesgACKSlice[2] == "wodexinxin" {
 			communicationConn.Conn = &conn
 			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
@@ -116,7 +116,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 			communicationConn.Id = mesSlice[1]
 			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
-			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id))
+			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id + ":wodexinxin"))
 			if writeErr != nil {
 				fmt.Printf("communication connection write error!%v\n", writeErr)
 				_ = conn.Close()
