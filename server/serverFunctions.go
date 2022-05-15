@@ -91,41 +91,43 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 	mesgSlice := strings.Split(string(readCache[:n]), ":")
 	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
 		ack := make([]byte, 1024)
-		for i := 0; i < 10; i++ { // accept 10 connections
+		for i := 0; i < 5; i++ { // accept 10 connections
 			newConn, newConnectionErr := listener.Accept() // for loop to establish connection
 			if newConnectionErr != nil {
-				fmt.Printf("connection etablished error. %v\n", newConnectionErr)
+				fmt.Printf("Connection etablished error. %v\n", newConnectionErr)
 				continue
 			}
 			n, readErr := newConn.Read(ack)
 			if readErr != nil {
-				fmt.Printf("new connection read error. from %v", newConn.RemoteAddr().String())
+				fmt.Printf("New connection read error.From %v\n", newConn.RemoteAddr().String())
 				_ = newConn.Close()
 				continue
 			}
+			fmt.Printf("Received a connection from %v\n", newConn.RemoteAddr().String())
 			mesgStr := string(ack[:n])
 			if mesgStr == conn.Id+":xy" {
 				fmt.Println("Establish a connection with a remote client..")
 				_, newConnWriteErr := newConn.Write([]byte(conn.Id + ":xy" + ":wode")) // return a mesg for establish ssh server
 				if newConnWriteErr != nil {
-					return nil, errors.New(fmt.Sprintf("new connection write when send ssh mesg"))
+					return nil, errors.New(fmt.Sprintf("New connection write when send mesg"))
 				}
+				fmt.Println("Established a connection with a remote client")
 				conn.ConnLocal = &connLocal
 				conn.ConnRemote = &newConn
 				conn.Alive = true
 				conn.StartTime = time.Now().Unix()
 				return &conn, nil
 			} else {
-				fmt.Printf("wrong mseg:%v.from:%v", mesgStr, newConn.RemoteAddr().String())
+				fmt.Printf("Wrong mseg:%v.From:%v\n", mesgStr, newConn.RemoteAddr().String())
 				_ = newConn.Close()
 				continue
 			}
 		}
 	} else {
-		fmt.Println(mesgSlice, "can not establish with remote client. wrong mesg")
+		fmt.Println(mesgSlice, "Can not establish with remote client. wrong mesg")
 		return nil, errors.New("remote client error")
 	}
-	return nil, errors.New(fmt.Sprintf("10 conections out, close all connections"))
+	return nil, errors.New(fmt.Sprintf("5 conections out, close all connections."))
 }
 
 func KeepAliveS(conn *communication.Connection, listener net.Listener) {

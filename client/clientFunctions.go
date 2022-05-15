@@ -141,3 +141,15 @@ func CloseRemoteConnection(conn *RemoteConnection) {
 		fmt.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
+
+func CheckAlive(conns []*RemoteConnection) (int, []*RemoteConnection) {
+	var newConns = make([]*RemoteConnection, 0, 15)
+	for i := range conns {
+		if conns[i].Alive {
+			newConns = append(newConns, conns[i])
+		} else {
+			continue
+		}
+	}
+	return len(newConns), newConns
+}
