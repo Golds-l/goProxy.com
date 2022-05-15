@@ -81,12 +81,12 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 	_, writeErr := communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new Connection
 	if writeErr != nil {
 		fmt.Println(writeErr)
-		return nil, errors.New("communication connection write error")
+		return nil, errors.New("communication connection write error when establish new connection")
 	}
 	n, communicationReadErr := communicationConn.Read(readCache)
 	if communicationReadErr != nil {
 		fmt.Println(writeErr)
-		return nil, errors.New("communication connection write error")
+		return nil, errors.New("communication connection read error when establish new connection")
 	}
 	mesgSlice := strings.Split(string(readCache[:n]), ":")
 	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
@@ -95,13 +95,13 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 			newConn, newConnectionErr := listener.Accept() // for loop to establish connection
 			if newConnectionErr != nil {
 				fmt.Printf("connection etablished error. %v\n", newConnectionErr)
-				_ = newConn.Close()
-				return nil, newConnectionErr
+				continue
 			}
 			n, readErr := newConn.Read(ack)
 			if readErr != nil {
+				fmt.Printf("new connection read error. from %v", newConn.RemoteAddr().String())
 				_ = newConn.Close()
-				return nil, errors.New("read error, connection establist failed.")
+				continue
 			}
 			mesgStr := string(ack[:n])
 			if mesgStr == conn.Id+":xy" {
@@ -116,8 +116,9 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 				conn.StartTime = time.Now().Unix()
 				return &conn, nil
 			} else {
+				fmt.Printf("wrong mseg:%v.from:%v", mesgStr, newConn.RemoteAddr().String())
 				_ = newConn.Close()
-				return nil, errors.New(fmt.Sprintf("wrong mseg:%v.from:%v", mesgStr, newConn.RemoteAddr().String()))
+				continue
 			}
 		}
 	} else {
