@@ -19,7 +19,7 @@ type RemoteConnection struct {
 
 func (conn *RemoteConnection) RemoteClientToCloudServer(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 1440)
+	cache := make([]byte, 4096)
 	for {
 		select {
 		case <-q:
@@ -39,7 +39,7 @@ func (conn *RemoteConnection) RemoteClientToCloudServer(q chan int) {
 
 func (conn *RemoteConnection) CloudServerToRemoteClient(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 1440)
+	cache := make([]byte, 4096)
 	for {
 		readNum, connProReadErr := connCloud.Read(cache)
 		if connProReadErr != nil {
@@ -76,7 +76,8 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 	var conn RemoteConnection
 	ack := make([]byte, 1024)
 	for i := 0; i < 5; i++ {
-		connServer, connServerErr := net.Dial("tcp", serverAddr)
+		fmt.Println("begin shakehand..")
+		connServer, connServerErr := net.DialTimeout("tcp", serverAddr, 3*time.Second)
 		if connServerErr != nil {
 			fmt.Println("connection establish error", connServerErr)
 			continue
@@ -108,7 +109,7 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			return &conn, nil
 		} else {
 			_ = connServer.Close()
-			fmt.Printf("wrong mesg from%v\n", connServer.RemoteAddr().String())
+			fmt.Printf("wrong mesg %v from%v\n", string(ack[:n]), connServer.RemoteAddr().String())
 			continue
 		}
 	}

@@ -54,9 +54,10 @@ func WriteAlive(conn *net.Conn, s string) {
 func EstablishCommunicationConnS(serverListener *net.TCPListener, communicationConn *Connection) {
 	connACK := make([]byte, 512)
 	for {
+		_ = serverListener.SetDeadline(time.Now().Add(10 * time.Second))
 		conn, acceptErr := serverListener.Accept()
 		if acceptErr != nil {
-			fmt.Println("Can not connect cloud server... Retry in a second")
+			fmt.Println("Can not connect remote client... Retry in a second")
 			time.Sleep(1 * time.Second)
 			continue
 		}

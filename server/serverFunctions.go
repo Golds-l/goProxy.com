@@ -19,7 +19,7 @@ type CloudConnection struct {
 }
 
 func (conn *CloudConnection) CloudServerToLocal(q chan int) {
-	cache := make([]byte, 1440)
+	cache := make([]byte, 4096)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		select {
@@ -39,7 +39,7 @@ func (conn *CloudConnection) CloudServerToLocal(q chan int) {
 }
 
 func (conn *CloudConnection) LocalToCloudServer(q chan int) {
-	cache := make([]byte, 1440)
+	cache := make([]byte, 4096)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connLocal.Read(cache)
@@ -111,6 +111,7 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 			if mesgStr == conn.Id+":xy" {
 				fmt.Println("Establish a connection with a remote client..")
 				_, newConnWriteErr := newConn.Write([]byte(conn.Id + ":xy" + ":wode")) // return a mesg for establish ssh server
+				time.Sleep(1 * time.Second)
 				if newConnWriteErr != nil {
 					return nil, errors.New(fmt.Sprintf("New connection write when send mesg"))
 				}
