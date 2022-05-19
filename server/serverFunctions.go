@@ -12,7 +12,7 @@ import (
 
 type CloudConnection struct {
 	ConnLocal  *net.Conn
-	ConnRemote *net.Conn
+	ConnRemote *net.TCPConn
 	Id         string
 	StartTime  int64
 	Alive      bool
@@ -74,7 +74,7 @@ func (conn *CloudConnection) Close() error {
 	}
 }
 
-func MakeNewConn(communicationConn *communication.Connection, listener net.Listener, connLocal net.Conn) (*CloudConnection, error) {
+func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPListener, connLocal net.Conn) (*CloudConnection, error) {
 	readCache := make([]byte, 256)
 	var conn CloudConnection
 	conn.Id = communication.GenerateConnId()
@@ -83,6 +83,7 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 		fmt.Println(writeErr)
 		return nil, errors.New("communication connection write error when establish new connection")
 	}
+	fmt.Println("New request has sent...")
 	n, communicationReadErr := communicationConn.Read(readCache)
 	if communicationReadErr != nil {
 		fmt.Println(writeErr)
@@ -91,8 +92,10 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 	mesgSlice := strings.Split(string(readCache[:n]), ":")
 	if mesgSlice[0] == "NEW" && mesgSlice[1] == conn.Id {
 		ack := make([]byte, 1024)
-		for i := 0; i < 5; i++ { // accept 10 connections
-			newConn, newConnectionErr := listener.Accept() // for loop to establish connection
+		fmt.Println("begin shakehand...")
+		for i := 0; i < 8; i++ { // accept 10 connections
+			_ = listener.SetDeadline(time.Now().Add(10 * time.Second))
+			newConn, newConnectionErr := listener.AcceptTCP() // for loop to establish connection
 			if newConnectionErr != nil {
 				fmt.Printf("Connection etablished error. %v\n", newConnectionErr)
 				continue
@@ -111,9 +114,8 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 				if newConnWriteErr != nil {
 					return nil, errors.New(fmt.Sprintf("New connection write when send mesg"))
 				}
-				fmt.Println("Established a connection with a remote client")
 				conn.ConnLocal = &connLocal
-				conn.ConnRemote = &newConn
+				conn.ConnRemote = newConn
 				conn.Alive = true
 				conn.StartTime = time.Now().Unix()
 				return &conn, nil
@@ -127,10 +129,10 @@ func MakeNewConn(communicationConn *communication.Connection, listener net.Liste
 		fmt.Println(mesgSlice, "Can not establish with remote client. wrong mesg")
 		return nil, errors.New("remote client error")
 	}
-	return nil, errors.New(fmt.Sprintf("5 conections out, close all connections."))
+	return nil, errors.New(fmt.Sprintf("conection accept times out, close all connections."))
 }
 
-func KeepAliveS(conn *communication.Connection, listener net.Listener) {
+func KeepAliveS(conn *communication.Connection, listener *net.TCPListener) {
 	cache := make([]byte, 1024)
 	for {
 		_, writeErr := conn.Write([]byte("isAlive"))

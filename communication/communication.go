@@ -51,7 +51,7 @@ func WriteAlive(conn *net.Conn, s string) {
 	}
 }
 
-func EstablishCommunicationConnS(serverListener net.Listener, communicationConn *Connection) {
+func EstablishCommunicationConnS(serverListener *net.TCPListener, communicationConn *Connection) {
 	connACK := make([]byte, 512)
 	for {
 		conn, acceptErr := serverListener.Accept()

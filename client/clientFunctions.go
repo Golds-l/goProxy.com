@@ -74,38 +74,45 @@ func (conn *RemoteConnection) Close() error {
 
 func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) {
 	var conn RemoteConnection
-	connServer, connServerErr := net.Dial("tcp", serverAddr)
 	ack := make([]byte, 1024)
-	if connServerErr != nil {
-		return nil, connServerErr
-	}
-	_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
-	if serverWriteErr != nil {
-		_ = connServer.Close()
-		return nil, serverWriteErr
-	}
-	n, readErr := connServer.Read(ack)
-	if readErr != nil {
-		_ = connServer.Close()
-		return nil, errors.New("read error when establish connection")
-	}
-	if string(ack[:n]) == id+":xy"+":wode" {
-		fmt.Println("connect local service")
-		connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
-		if connLocalErr != nil {
-			_ = connServer.Close()
-			return nil, connLocalErr
+	for i := 0; i < 5; i++ {
+		connServer, connServerErr := net.Dial("tcp", serverAddr)
+		if connServerErr != nil {
+			fmt.Println("connection establish error", connServerErr)
+			continue
 		}
-		conn.Id = id
-		conn.ConnCloud = &connServer
-		conn.ConnProcess = &connLocal
-		conn.StartTime = time.Now().Unix()
-		conn.Alive = true
-		return &conn, nil
-	} else {
-		_ = connServer.Close()
-		return nil, errors.New(fmt.Sprintf("wrong mesg from%v", connServer.RemoteAddr().String()))
+		_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
+		if serverWriteErr != nil {
+			_ = connServer.Close()
+			fmt.Printf("write error when establish connection.from %v\n", connServer.RemoteAddr().String())
+			continue
+		}
+		n, readErr := connServer.Read(ack)
+		if readErr != nil {
+			_ = connServer.Close()
+			fmt.Printf("read error when establish connection.from %v\n", connServer.RemoteAddr().String())
+			continue
+		}
+		if string(ack[:n]) == id+":xy"+":wode" {
+			fmt.Println("connect local service")
+			connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
+			if connLocalErr != nil {
+				_ = connServer.Close()
+				return nil, connLocalErr
+			}
+			conn.Id = id
+			conn.ConnCloud = &connServer
+			conn.ConnProcess = &connLocal
+			conn.StartTime = time.Now().Unix()
+			conn.Alive = true
+			return &conn, nil
+		} else {
+			_ = connServer.Close()
+			fmt.Printf("wrong mesg from%v\n", connServer.RemoteAddr().String())
+			continue
+		}
 	}
+	return nil, errors.New("try out")
 }
 
 func KeepAliveC(conn *communication.Connection, addr string) {

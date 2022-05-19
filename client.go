@@ -60,10 +60,10 @@ func main() {
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
 			}
-			fmt.Println("receive new connection request, establish connection..")
+			fmt.Println("receive new connection request, establish connection..", time.Now().Format("2006-01-02 15:04:05"))
 			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1])
 			if mkErr != nil {
-				fmt.Println("can not establish connection.", mkErr)
+				fmt.Println("can not establish connection.", mkErr, time.Now().Format("2006-01-02 15:04:05"))
 				continue
 			}
 			q := make(chan int)
