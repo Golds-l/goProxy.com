@@ -75,6 +75,7 @@ func (conn *RemoteConnection) Close() error {
 
 func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) {
 	var conn RemoteConnection
+	var redundantMesg []byte
 	ack := make([]byte, 1024)
 	for i := 0; i < 5; i++ {
 		fmt.Printf("try to connect...")
@@ -103,6 +104,10 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			fmt.Println(string(ack[:n]))
 		}
 		shakehandMesgSlice := strings.Split(string(ack[:n]), ":")
+		if len(shakehandMesgSlice[2]) > 4 {
+			redundantMesg = make([]byte, len(shakehandMesgSlice[2])-4)
+			copy(redundantMesg, shakehandMesgSlice[2][4:])
+		}
 		if shakehandMesgSlice[0] == id && shakehandMesgSlice[1] == "xy" && shakehandMesgSlice[2][:4] == "wode" {
 			fmt.Println("connect local service", time.Now().Format("1999-11-28 00:00:00"))
 			connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
@@ -115,6 +120,7 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			conn.ConnProcess = &connLocal
 			conn.StartTime = time.Now().Unix()
 			conn.Alive = true
+			_, _ = connLocal.Write(redundantMesg)
 			return &conn, nil
 		} else {
 			_ = connServer.Close()
