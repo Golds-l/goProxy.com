@@ -91,8 +91,6 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			fmt.Printf("write error when establish connection.from %v\n", connServer.RemoteAddr().String())
 			continue
 		}
-		// TODO: tcp粘包，握手信息错误，启动二次连接，服务端连接已建立，无回应，远程客户端阻塞
-		// 再次发起连接，服务短握手信息无回应，服务端阻塞
 		n, readErr := connServer.Read(ack)
 		if readErr != nil {
 			_ = connServer.Close()
