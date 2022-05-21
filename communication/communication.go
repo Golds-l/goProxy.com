@@ -53,25 +53,32 @@ func WriteAlive(conn *net.Conn, s string) {
 
 func EstablishCommunicationConnS(serverListener *net.TCPListener, communicationConn *Connection) {
 	connACK := make([]byte, 512)
+	var isLog = false
 	for {
 		_ = serverListener.SetDeadline(time.Now().Add(10 * time.Second))
 		conn, acceptErr := serverListener.Accept()
 		if acceptErr != nil {
-			fmt.Println("Can not connect remote client... Retry in a second")
+			if !isLog {
+				fmt.Println("Can not establish communication connections,retry in a second")
+				isLog = true
+			}
 			time.Sleep(1 * time.Second)
 			continue
+		} else {
+			isLog = false
 		}
+		fmt.Printf("accept a communication connection from %v %v\n", conn.RemoteAddr().String(), time.Now().Format("1999-11-28 00:00:00"))
 		communicationConn.Id = GenerateConnId()
 		mesg := "communication:" + communicationConn.Id + ":xy"
 		_, writeErr := conn.Write([]byte(mesg))
 		if writeErr != nil {
-			fmt.Printf("connection write error! %v\n", writeErr)
+			fmt.Printf("communication connection write error! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", conn)
 			_ = conn.Close()
 		}
 		n, readErr := conn.Read(connACK)
 		if readErr != nil {
-			fmt.Printf("connection read error! %v\n", writeErr)
+			fmt.Printf("communication connection read error! %v\n", writeErr)
 			fmt.Printf("connection:%v will be closed\n", communicationConn.Id)
 			_ = conn.Close()
 		}
@@ -80,7 +87,7 @@ func EstablishCommunicationConnS(serverListener *net.TCPListener, communicationC
 			communicationConn.Conn = &conn
 			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
-			fmt.Printf("cloud server<--->remote client is connected!\nid:%v\n", communicationConn.Id)
+			fmt.Printf("cloud server<--->remote client is connected!\nfrom %v id:%v %v\n", conn.RemoteAddr().String(), communicationConn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			break
 		}
 		_ = conn.Close()
@@ -125,7 +132,7 @@ func EstablishCommunicationConnC(addr string) *Connection {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			fmt.Printf("Connection established. Id: %v\n", communicationConn.Id)
+			fmt.Printf("communication connection established. Id: %v %v\n", communicationConn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			break
 		}
 		_ = conn.Close()

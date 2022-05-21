@@ -94,7 +94,10 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 		ack := make([]byte, 1024)
 		fmt.Println("begin shakehand...")
 		for i := 0; i < 8; i++ { // accept 10 connections
-			_ = listener.SetDeadline(time.Now().Add(10 * time.Second))
+			deadlineErr := listener.SetDeadline(time.Now().Add(10 * time.Second))
+			if deadlineErr != nil {
+				return nil, errors.New("listener error")
+			}
 			newConn, newConnectionErr := listener.AcceptTCP() // for loop to establish connection
 			if newConnectionErr != nil {
 				fmt.Printf("Connection etablished error. %v\n", newConnectionErr)
@@ -111,7 +114,7 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 			if mesgStr == conn.Id+":xy" {
 				fmt.Println("Establish a connection with a remote client..")
 				_, newConnWriteErr := newConn.Write([]byte(conn.Id + ":xy" + ":wode")) // return a mesg for establish ssh server
-				time.Sleep(1 * time.Second)
+				//time.Sleep(1 * time.Second)
 				if newConnWriteErr != nil {
 					return nil, errors.New(fmt.Sprintf("New connection write when send mesg"))
 				}
@@ -139,7 +142,7 @@ func KeepAliveS(conn *communication.Connection, listener *net.TCPListener) {
 		_, writeErr := conn.Write([]byte("isAlive"))
 		if writeErr != nil {
 			fmt.Printf("communication connection write err %v\n", writeErr)
-			fmt.Println("close and reconnect in a second...")
+			fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
 			communication.EstablishCommunicationConnS(listener, conn)
@@ -147,8 +150,8 @@ func KeepAliveS(conn *communication.Connection, listener *net.TCPListener) {
 		}
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("server communication connection read error %v\n", readErr)
-			fmt.Println("close and reconnecting..")
+			fmt.Printf("communication connection read error %v\n", readErr)
+			fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
 			time.Sleep(1 * time.Second)
 			_ = conn.Close()
 			communication.EstablishCommunicationConnS(listener, conn)

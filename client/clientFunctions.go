@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/Golds-l/goproxy/communication"
@@ -76,26 +77,36 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 	var conn RemoteConnection
 	ack := make([]byte, 1024)
 	for i := 0; i < 5; i++ {
-		fmt.Println("begin shakehand..")
+		fmt.Printf("try to connect...")
 		connServer, connServerErr := net.DialTimeout("tcp", serverAddr, 3*time.Second)
 		if connServerErr != nil {
+			fmt.Println()
 			fmt.Println("connection establish error", connServerErr)
 			continue
 		}
+		fmt.Println("connections establish, begin shakehand")
 		_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
 		if serverWriteErr != nil {
 			_ = connServer.Close()
 			fmt.Printf("write error when establish connection.from %v\n", connServer.RemoteAddr().String())
 			continue
 		}
+		// TODO: tcp粘包，握手信息错误，启动二次连接，服务端连接已建立，无回应，远程客户端阻塞
+		// 再次发起连接，服务短握手信息无回应，服务端阻塞
 		n, readErr := connServer.Read(ack)
 		if readErr != nil {
 			_ = connServer.Close()
 			fmt.Printf("read error when establish connection.from %v\n", connServer.RemoteAddr().String())
 			continue
 		}
-		if string(ack[:n]) == id+":xy"+":wode" {
-			fmt.Println("connect local service")
+		if n >= 27 {
+			fmt.Println(string(ack[:27]))
+		} else {
+			fmt.Println(string(ack[:n]))
+		}
+		shakehandMesgSlice := strings.Split(string(ack[:n]), ":")
+		if shakehandMesgSlice[0] == id && shakehandMesgSlice[1] == "xy" && shakehandMesgSlice[2][:4] == "wode" {
+			fmt.Println("connect local service", time.Now().Format("1999-11-28 00:00:00"))
 			connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
 			if connLocalErr != nil {
 				_ = connServer.Close()
@@ -121,7 +132,7 @@ func KeepAliveC(conn *communication.Connection, addr string) {
 	for {
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("client communication connection read err. %v\n", readErr)
+			fmt.Printf("communication connection read err. %v\n", readErr)
 			fmt.Println("close and reconnect in a second..")
 			_ = conn.Close()
 			time.Sleep(1 * time.Second)

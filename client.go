@@ -42,8 +42,8 @@ func main() {
 		if mesg == "isAlive" {
 			_, writeErr := communicationConn.Write([]byte("alive"))
 			if writeErr != nil {
-				fmt.Printf("client communication connection write error. %v\n", writeErr)
-				fmt.Println("close and reconnect in a second..")
+				fmt.Printf("communication connection write error. %v\n", writeErr)
+				fmt.Printf("close and reconnect a second later. %v\n", time.Now().Format("2006-01-02 15:04:05"))
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
@@ -54,8 +54,8 @@ func main() {
 		if mesgSlice[0] == "NEWC" {
 			_, writeErr := communicationConn.Write([]byte("NEW:" + mesgSlice[1]))
 			if writeErr != nil {
-				fmt.Printf("client communication connection write error. %v\n", writeErr)
-				fmt.Println("close and reconnect in a second..")
+				fmt.Printf("communication connection write error. %v\n", writeErr)
+				fmt.Printf("close and reconnect a second later. %v\n", time.Now().Format("2006-01-02 15:04:05"))
 				time.Sleep(1 * time.Second)
 				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
 				continue
