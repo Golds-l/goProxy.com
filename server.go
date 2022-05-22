@@ -37,7 +37,8 @@ func main() {
 	fmt.Printf("Start listening. Local port:%v Remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
 	fmt.Printf("time: %v\n", time.Now().Format("2006-01-02 15:04:05"))
 	communication.EstablishCommunicationConnS(listenRemote, communicationConn)
-	go server.KeepAliveS(communicationConn, listenRemote)
+	s := make(chan int) // MakeNewConn communicates with KeepAliveS
+	go server.KeepAliveS(communicationConn, listenRemote, s)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
 		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
@@ -51,7 +52,7 @@ func main() {
 			connLocal.Close()
 			continue
 		}
-		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal)
+		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal, s)
 		if mkErr != nil {
 			fmt.Println(mkErr)
 			if conn != nil {

@@ -86,6 +86,7 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			continue
 		}
 		fmt.Println("connections establish, begin shakehand")
+		// 是否写入成功？可能写入成功，发送的数据被KeepAliveS先行捕获，客户端也造成读阻塞
 		_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
 		if serverWriteErr != nil {
 			_ = connServer.Close()

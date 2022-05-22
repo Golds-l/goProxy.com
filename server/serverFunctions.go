@@ -74,10 +74,11 @@ func (conn *CloudConnection) Close() error {
 	}
 }
 
-func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPListener, connLocal net.Conn) (*CloudConnection, error) {
+func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPListener, connLocal net.Conn, q chan int) (*CloudConnection, error) {
 	readCache := make([]byte, 256)
 	var conn CloudConnection
 	conn.Id = communication.GenerateConnId()
+	q <- 1                                                            // clear communication connection
 	_, writeErr := communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new Connection
 	if writeErr != nil {
 		fmt.Println(writeErr)
@@ -124,7 +125,7 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 				conn.StartTime = time.Now().Unix()
 				return &conn, nil
 			} else {
-				fmt.Printf("Wrong mseg:%v.From:%v\n", mesgStr, newConn.RemoteAddr().String())
+				fmt.Printf("wrong mseg:%v.from:%v\n", mesgStr, newConn.RemoteAddr().String())
 				_ = newConn.Close()
 				continue
 			}
@@ -136,31 +137,38 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 	return nil, errors.New(fmt.Sprintf("conection accept times out, close all connections."))
 }
 
-func KeepAliveS(conn *communication.Connection, listener *net.TCPListener) {
+func KeepAliveS(conn *communication.Connection, listener *net.TCPListener, q chan int) {
 	cache := make([]byte, 1024)
 	for {
-		_, writeErr := conn.Write([]byte("isAlive"))
-		if writeErr != nil {
-			fmt.Printf("communication connection write err %v\n", writeErr)
-			fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
-			time.Sleep(1 * time.Second)
-			_ = conn.Close()
-			communication.EstablishCommunicationConnS(listener, conn)
-			continue
+		select {
+		case <-q:
+			time.Sleep(2 * time.Second) // Sleep for make new connection
+		default:
+			_, writeErr := conn.Write([]byte("isAlive"))
+			if writeErr != nil {
+				fmt.Printf("communication connection write err %v\n", writeErr)
+				fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
+				time.Sleep(1 * time.Second)
+				_ = conn.Close()
+				communication.EstablishCommunicationConnS(listener, conn)
+				continue
+			}
+			n, readErr := conn.Read(cache)
+			if readErr != nil {
+				fmt.Printf("communication connection read error %v\n", readErr)
+				fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
+				time.Sleep(1 * time.Second)
+				_ = conn.Close()
+				communication.EstablishCommunicationConnS(listener, conn)
+				continue
+			}
+			if string(cache[:n]) == "alive" {
+				conn.Alive = true
+			} else if string(cache[:4]) == "NEW" {
+
+			}
+			time.Sleep(3 * time.Second)
 		}
-		n, readErr := conn.Read(cache)
-		if readErr != nil {
-			fmt.Printf("communication connection read error %v\n", readErr)
-			fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
-			time.Sleep(1 * time.Second)
-			_ = conn.Close()
-			communication.EstablishCommunicationConnS(listener, conn)
-			continue
-		}
-		if string(cache[:n]) == "alive" {
-			conn.Alive = true
-		}
-		time.Sleep(3 * time.Second)
 	}
 }
 
