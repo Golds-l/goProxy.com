@@ -1,10 +1,18 @@
 #!/bin/bash
-if [ -e "./proxy.log" ]; then
+logpath="/var/log/proxy.log"
+pidpath="/run/goproxy.pid"
+if [ -e $logpath ]; then
     echo 
 else
-    touch proxy.log
+    touch $logpath
 fi
-echo "start: $(date "+%Y-%m-%d %H:%M:%S")" >> proxy.log
-nohup ../bin/server -lP 2000 -rP 2001 >> proxy.log &
+if [ -e $pidpath ]; then
+    echo 
+else
+    touch $pidpath
+fi
+echo "start: $(date "+%Y-%m-%d %H:%M:%S")" >> $logpath
+nohup /home/ubuntu/goproxy/server -lP 2000 -rP 2001 >> $logpath &
+echo $! > $pidpath
 sleep 0.1
 echo "start.."

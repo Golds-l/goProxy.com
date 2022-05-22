@@ -1,6 +1,5 @@
 #!/bin/bash
-string=$(ps -ef | grep ./client)
-array=(`echo $string | tr ' ' ' '` )
-echo ${array[1]}
-kill -9 ${array[1]}
+pid=`cat /run/goproxy.pid`
+logpath="/home/golds/goproxy/proxy.log"
+kill -9 $pid
 echo "stop: $(date "+%Y-%m-%d %H:%M:%S")" >> proxy.log

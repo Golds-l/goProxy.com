@@ -1,0 +1,13 @@
+[Unit]
+Description=proxy
+
+[Service]
+Type=forking
+ExecStart=/path/to/goproxy/start.sh
+ExecStop=/path/to/goproxy/stop.sh
+ExecReload=/path/to/goproxy/restart.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
