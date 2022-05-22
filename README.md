@@ -1,6 +1,6 @@
 # 内网穿透
 > 通过公网的服务器转发流量实现内网穿透，需要有一台具有公网IP的服务器。
-#### 可执行文件仅linux平台，目前仅测试过穿透SSH服务
+#### 可执行文件仅linux平台，目前仅测试过穿透SSH服务!!!
 ## 参数说明
 ### 公网服务端
 -lP 端口号，将内网服务穿透出的端口，通过该端口访问内网服务
@@ -13,7 +13,7 @@
 ## 启停
 可通过脚本及配置文件配合systemd使用,需要修改配置文件中脚本路径和脚本中的执行文件路径。
 也可单独使用脚本启停服务，同样需修改脚本中可执行文件的路径。
-### 使用systemd启停服务
+### 使用systemd管理服务
 需先修改脚本中可执行文件的路径及参数和配置文件中脚本的路径！
 #### 内网机器
 加载配置文件:
@@ -21,7 +21,7 @@
 sudo ln -S goproxy/client/goproxy.service /usr/lib/systemd/system/goproxy.service
 sudo systemctl daemon-reload
 ```
-启停服务:
+管理服务:
 ```shell
 sudo systemctl start goproxy.service // 启动
 sudo systemctl stop goproxy.service // 停止
