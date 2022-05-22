@@ -12,7 +12,7 @@ else
     touch $pidpath
 fi
 echo "start: $(date "+%Y-%m-%d %H:%M:%S")" >> $logpath
-nohup /home/ubuntu/goproxy/server -lP 2000 -rP 2001 >> $logpath &
+nohup /path/to/goproxy/server -lP 2000 -rP 2001 >> $logpath &
 echo $! > $pidpath
 sleep 0.1
 echo "start.."
