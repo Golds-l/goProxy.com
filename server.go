@@ -41,7 +41,7 @@ func main() {
 	go server.KeepAliveS(communicationConn, listenRemote, s)
 	for {
 		connLocal, connLocalErr := listenLocal.Accept()
-		fmt.Printf("Connection from %v. %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
+		fmt.Printf("Connection from %v. %v ", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 		if connLocalErr != nil {
 			fmt.Printf("Connection from %v refused! %v\n", connLocal.RemoteAddr(), time.Now().Format("2006-01-02 15:04:05"))
 			if connLocalErr != nil {
@@ -52,9 +52,10 @@ func main() {
 			connLocal.Close()
 			continue
 		}
+		fmt.Println("establish new connection")
 		conn, mkErr := server.MakeNewConn(communicationConn, listenRemote, connLocal, s)
 		if mkErr != nil {
-			fmt.Println(mkErr)
+			fmt.Println(mkErr, time.Now().Format("2006-01-02 15:04:05"))
 			if conn != nil {
 				_ = conn.Close()
 				connLocal.Close()

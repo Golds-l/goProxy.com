@@ -73,6 +73,8 @@ func main() {
 			connections = append(connections, conn)
 			aliveNum, connections = client.CheckAlive(connections)
 			fmt.Printf("Number of connections: %v\n", aliveNum)
+			continue
 		}
+		fmt.Println(mesg)
 	}
 }

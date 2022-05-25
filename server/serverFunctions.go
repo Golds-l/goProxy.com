@@ -78,7 +78,9 @@ func MakeNewConn(communicationConn *communication.Connection, listener *net.TCPL
 	readCache := make([]byte, 256)
 	var conn CloudConnection
 	conn.Id = communication.GenerateConnId()
-	q <- 1                                                            // clear communication connection
+	fmt.Printf("stop KeepAliveS ")
+	q <- 1 // clear communication connection
+	fmt.Printf("stopped\n")
 	_, writeErr := communicationConn.Write([]byte("NEWC:" + conn.Id)) // make new Connection
 	if writeErr != nil {
 		fmt.Println(writeErr)
@@ -163,11 +165,9 @@ func KeepAliveS(conn *communication.Connection, listener *net.TCPListener, q cha
 			}
 			if string(cache[:n]) == "alive" {
 				conn.Alive = true
-			} else if string(cache[:4]) == "NEW" {
-
 			}
-			time.Sleep(3 * time.Second)
 		}
+		time.Sleep(3 * time.Second)
 	}
 }
 
