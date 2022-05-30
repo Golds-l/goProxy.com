@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/Golds-l/goproxy/communication"
@@ -73,10 +72,8 @@ func (conn *RemoteConnection) Close() error {
 	}
 }
 
-func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) {
+func MakeNewClient(serverAddr, localAddr, id string, host string) (*RemoteConnection, error) {
 	var conn RemoteConnection
-	var redundantMesg []byte
-	ack := make([]byte, 1024)
 	for i := 0; i < 5; i++ {
 		fmt.Printf("try to connect...")
 		connServer, connServerErr := net.DialTimeout("tcp", serverAddr, 3*time.Second)
@@ -85,50 +82,23 @@ func MakeNewClient(serverAddr, localAddr, id string) (*RemoteConnection, error) 
 			fmt.Println("connection establish error", connServerErr)
 			continue
 		}
-		fmt.Println("connections establish, begin shakehand")
-		_, serverWriteErr := connServer.Write([]byte(id + ":xy"))
-		if serverWriteErr != nil {
+		fmt.Println("connections establish,connect local service", time.Now().Format("2006-01-02 15:04:05"))
+		connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
+		if connLocalErr != nil {
 			_ = connServer.Close()
-			fmt.Printf("write error when establish connection.from %v\n", connServer.RemoteAddr().String())
-			continue
+			return nil, connLocalErr
 		}
-		connServer.SetReadDeadline(time.Now().Add(2 * time.Second)) // set a deadline for block
-		n, readErr := connServer.Read(ack)
-		if readErr != nil {
-			_ = connServer.Close()
-			fmt.Printf("read error when establish connection.from %v\n", connServer.RemoteAddr().String())
-			continue
-		}
-		connServer.SetReadDeadline(time.Time{}) // close read deadline if establish connection
-		shakehandMesgSlice := strings.Split(string(ack[:n]), ":")
-		if len(shakehandMesgSlice[2]) > 4 {
-			redundantMesg = make([]byte, len(shakehandMesgSlice[2])-4)
-			copy(redundantMesg, shakehandMesgSlice[2][4:])
-		}
-		if shakehandMesgSlice[0] == id && shakehandMesgSlice[1] == "xy" && shakehandMesgSlice[2][:4] == "wode" {
-			fmt.Println("connect local service", time.Now().Format("2006-01-02 15:04:05"))
-			connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
-			if connLocalErr != nil {
-				_ = connServer.Close()
-				return nil, connLocalErr
-			}
-			conn.Id = id
-			conn.ConnCloud = &connServer
-			conn.ConnProcess = &connLocal
-			conn.StartTime = time.Now().Unix()
-			conn.Alive = true
-			_, _ = connLocal.Write(redundantMesg)
-			return &conn, nil
-		} else {
-			_ = connServer.Close()
-			fmt.Printf("wrong mesg %v from%v\n", string(ack[:n]), connServer.RemoteAddr().String())
-			continue
-		}
+		conn.Id = id
+		conn.ConnCloud = &connServer
+		conn.ConnProcess = &connLocal
+		conn.StartTime = time.Now().Unix()
+		conn.Alive = true
+		return &conn, nil
 	}
 	return nil, errors.New("try out")
 }
 
-func KeepAliveC(conn *communication.Connection, addr string) {
+func KeepAliveC(conn *communication.CommunicationConnection, addr string) {
 	cache := make([]byte, 512)
 	for {
 		n, readErr := conn.Read(cache)

@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	var communicationConn *communication.Connection
+	var communicationConn *communication.CommunicationConnection
 	var connections []*client.RemoteConnection
 	var aliveNum int
 	argsMap, ok := other.GetArgsRemoteClient()
@@ -52,16 +52,8 @@ func main() {
 		}
 		mesgSlice := strings.Split(string(cache[:n]), ":")
 		if mesgSlice[0] == "NEWC" {
-			_, writeErr := communicationConn.Write([]byte("NEW:" + mesgSlice[1]))
-			if writeErr != nil {
-				fmt.Printf("communication connection write error. %v\n", writeErr)
-				fmt.Printf("close and reconnect a second later. %v\n", time.Now().Format("2006-01-02 15:04:05"))
-				time.Sleep(1 * time.Second)
-				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
-				continue
-			}
 			fmt.Println("receive new connection request, establish connection..", time.Now().Format("2006-01-02 15:04:05"))
-			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1])
+			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1], argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
 			if mkErr != nil {
 				fmt.Println("can not establish connection.", mkErr, time.Now().Format("2006-01-02 15:04:05"))
 				continue
