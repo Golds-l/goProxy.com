@@ -3,6 +3,7 @@ go 1.18
 use (
 	./client
 	./communication
+	./log
 	./other
 	./server
 )

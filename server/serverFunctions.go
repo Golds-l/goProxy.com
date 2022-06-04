@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Golds-l/goproxy/communication"
+	"github.com/Golds-l/goproxy/log"
 )
 
 type CloudConnection struct {
@@ -20,7 +21,7 @@ type CloudConnection struct {
 }
 
 func (conn *CloudConnection) CloudServerToLocal() {
-	cache := make([]byte, 4096)
+	cache := make([]byte, 5120)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		select {
@@ -40,7 +41,7 @@ func (conn *CloudConnection) CloudServerToLocal() {
 }
 
 func (conn *CloudConnection) LocalToCloudServer() {
-	cache := make([]byte, 4096)
+	cache := make([]byte, 5120)
 	connLocal, connRemote := *conn.ConnLocal, *conn.ConnRemote
 	for {
 		readNum, readErr := connLocal.Read(cache)
@@ -80,7 +81,6 @@ func (conn *CloudConnection) Close() error {
 }
 
 func MakeNewConn(communicationConn *communication.CommunicationConnection, listener *net.TCPListener, conn *CloudConnection) error {
-	// readCache := make([]byte, 256)
 	conn.Id = communication.GenerateConnId()
 	fmt.Printf("stop KeepAliveS ")
 	sendErr := communicationConn.SendNewConnectionRequest(conn.Id) // make new Connection
@@ -97,7 +97,6 @@ func MakeNewConn(communicationConn *communication.CommunicationConnection, liste
 		newConn, newConnectionErr := listener.AcceptTCP() // for loop to establish connection
 		if newConnectionErr != nil {
 			fmt.Printf("Connection etablished error. %v\n", newConnectionErr)
-			// _ = newConn.Close()
 			continue
 		}
 		if strings.Split(newConn.RemoteAddr().String(), ":")[0] != communicationConn.IP {
@@ -113,7 +112,7 @@ func MakeNewConn(communicationConn *communication.CommunicationConnection, liste
 		}
 
 	}
-	return errors.New(fmt.Sprintf("conection accept times out, close all connections."))
+	return fmt.Errorf("conection accept times out, close all connections")
 }
 
 func CloseCloudConnection(conn *CloudConnection) {
@@ -137,4 +136,102 @@ func CheckAlive(conns []*CloudConnection) (int, []*CloudConnection) {
 		}
 	}
 	return len(newConns), newConns
+}
+
+// establish connection with nodes,make communication connction. goroutine
+func ListenRemotePort(remoteListener net.TCPListener, connPool map[string]*communication.RemoteConnection) {
+	// TODO: not only listen communication connection
+	mesg := make([]byte, 1024)
+	for {
+		newConn, listenErr := remoteListener.AcceptTCP() // accept a conn from a node(maybe legal)
+		if listenErr != nil {
+			if newConn != nil {
+				fmt.Printf("remote listener error, close connection.%v", listenErr)
+				_ = newConn.Close()
+				continue
+			} else {
+				fmt.Printf("remote listener error.%v", listenErr)
+				continue
+			}
+		}
+		fmt.Printf("remote port accpeted a connection from:%v", newConn.RemoteAddr())
+		log.LogNow()
+		newConn.SetReadDeadline(time.Now().Add(time.Second))
+		n, readErr := newConn.Read(mesg)
+		if readErr != nil {
+			fmt.Printf("error when receivce mesg:%v\n", readErr)
+			_ = newConn.Close()
+			continue
+		}
+		newConn.SetReadDeadline(time.Time{})
+		mesgSlice := strings.Split(string(mesg[:n]), ":")
+		if mesgSlice[0] == "comConn" {
+			comConn, mkErr := communication.EstablishCommunicationConnS(newConn) // try to establish communication conn
+			if mkErr != nil {
+				fmt.Println(mkErr)
+				log.LogNow()
+				_ = newConn.Close()
+				continue
+			}
+			go comConn.KeepCommunicationConn()
+			go ListenLocalPort(comConn, connPool)
+			fmt.Printf("Cloud<----->Remote.communication conection established.from:%v", comConn.IP)
+			log.LogNow()
+		} else if mesgSlice[0] == "conn" {
+			var RConn communication.RemoteConnection
+			RConn.Conn = newConn
+			if len(mesgSlice) > 2 {
+				var redundantMesg string
+				for i := range mesgSlice[2:] {
+					redundantMesg += mesgSlice[2:][i]
+				}
+				RConn.RedundantMesg = redundantMesg
+			}
+			connPool[mesgSlice[1]] = &RConn
+		} else {
+			fmt.Printf("illegal connection from:%v", newConn.RemoteAddr())
+			log.LogNow()
+			_ = newConn.Close()
+		}
+	}
+}
+
+// accept conn from local client, establish it with remote client. goroutine
+func ListenLocalPort(comConn *communication.CommunicationConnection, connPool map[string]*communication.RemoteConnection) {
+	for {
+		if !comConn.Alive {
+			return
+		}
+		connLocal, listenErr := comConn.Listener.Accept()
+		if listenErr != nil {
+			if connLocal != nil {
+				_ = connLocal.Close()
+			}
+			fmt.Printf("local listener error %v\n", listenErr)
+			continue
+		}
+		fmt.Printf("port %v receive a request from:%v", connLocal.LocalAddr(), connLocal.RemoteAddr())
+		log.LogNow()
+		var newConn CloudConnection
+		newConn.Id = communication.GenerateConnId()
+		connRemote, rErr := comConn.EstablishNewConn(newConn.Id, connPool)
+		if rErr != nil {
+			fmt.Printf("establish error when connect remote:%v", rErr)
+			connLocal.Close()
+			log.LogNow()
+			continue
+		}
+		newConn.ConnLocal = &connLocal
+		newConn.ConnRemote = connRemote.Conn
+		newConn.StartTime = time.Now().Unix()
+		newConn.Alive = true
+		newConn.CommunicateChan = make(chan int)
+		if connRemote.RedundantMesg != "" {
+			(*newConn.ConnLocal).Write([]byte(connRemote.RedundantMesg))
+		}
+		go newConn.LocalToCloudServer()
+		go newConn.CloudServerToLocal()
+		fmt.Printf("connection established.Id:%v", newConn.Id)
+		log.LogNow()
+	}
 }

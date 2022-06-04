@@ -19,7 +19,7 @@ type RemoteConnection struct {
 
 func (conn *RemoteConnection) RemoteClientToCloudServer(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 4096)
+	cache := make([]byte, 5120)
 	for {
 		select {
 		case <-q:
@@ -39,7 +39,7 @@ func (conn *RemoteConnection) RemoteClientToCloudServer(q chan int) {
 
 func (conn *RemoteConnection) CloudServerToRemoteClient(q chan int) {
 	connCloud, connPro := *conn.ConnCloud, *conn.ConnProcess
-	cache := make([]byte, 4096)
+	cache := make([]byte, 5120)
 	for {
 		readNum, connProReadErr := connCloud.Read(cache)
 		if connProReadErr != nil {
@@ -82,6 +82,7 @@ func MakeNewClient(serverAddr, localAddr, id string, host string) (*RemoteConnec
 			fmt.Println("connection establish error", connServerErr)
 			continue
 		}
+		connServer.Write([]byte("conn:" + id + ":"))
 		fmt.Println("connections establish,connect local service", time.Now().Format("2006-01-02 15:04:05"))
 		connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
 		if connLocalErr != nil {
@@ -107,7 +108,7 @@ func KeepAliveC(conn *communication.CommunicationConnection, addr string) {
 			fmt.Println("close and reconnect in a second..")
 			_ = conn.Close()
 			time.Sleep(1 * time.Second)
-			conn = communication.EstablishCommunicationConnC(addr)
+			conn = communication.EstablishCommunicationConnC(addr, conn.Port)
 		}
 		if string(cache[:n]) == "isAlive" {
 			fmt.Printf("connection %v alive.. %v\n", conn.Id, time.Now())
@@ -117,7 +118,7 @@ func KeepAliveC(conn *communication.CommunicationConnection, addr string) {
 			fmt.Printf("client communication connection %v write err. %v\n", conn.Id, writeErr)
 			fmt.Println("close and reconnect in a second..")
 			time.Sleep(1 * time.Second)
-			conn = communication.EstablishCommunicationConnC(addr)
+			conn = communication.EstablishCommunicationConnC(addr, conn.Port)
 		}
 	}
 }

@@ -13,11 +13,12 @@ import (
 type CommunicationConnection struct {
 	Conn            *net.Conn
 	Id              string
-	Communication   bool
 	StartTime       int64
 	Alive           bool
 	IP              string
 	CommunicateChan chan int
+	Listener        *net.TCPListener
+	Port            string // local port
 }
 
 type CloudConnection struct {
@@ -26,6 +27,11 @@ type CloudConnection struct {
 	Id         string
 	StartTime  int64
 	Alive      bool
+}
+
+type RemoteConnection struct {
+	Conn          *net.TCPConn
+	RedundantMesg string
 }
 
 func GenerateRandomInt() int64 {
@@ -44,8 +50,10 @@ func (c *CommunicationConnection) Write(s []byte) (int, error) {
 }
 
 func (c *CommunicationConnection) Close() error {
-	conn := c.Conn
-	e := (*conn).Close()
+	c.Alive = false
+	c.StartTime = 0
+	e := (*c.Conn).Close()
+	(*c.Listener).Close()
 	return e
 }
 
@@ -62,22 +70,22 @@ func WriteAlive(conn *net.Conn, s string) {
 	}
 }
 
-func (communicationConn *CommunicationConnection) EstablishCommunicationConnS(serverListener *net.TCPListener) {
+func (communicationConn *CommunicationConnection) EstablishCommunicationConnS(conn net.Conn) {
 	connACK := make([]byte, 512)
-	var isLog = false
+	// var isLog = false
 	for {
-		_ = serverListener.SetDeadline(time.Now().Add(10 * time.Second))
-		conn, acceptErr := serverListener.Accept()
-		if acceptErr != nil {
-			if !isLog {
-				fmt.Println("Can not establish communication connections,retry in a second")
-				isLog = true
-			}
-			time.Sleep(1 * time.Second)
-			continue
-		} else {
-			isLog = false
-		}
+		// _ = serverListener.SetDeadline(time.Now().Add(10 * time.Second))
+		// conn, acceptErr := serverListener.Accept()
+		// if acceptErr != nil {
+		// 	if !isLog {
+		// 		fmt.Println("Can not establish communication connections,retry in a second")
+		// 		isLog = true
+		// 	}
+		// 	time.Sleep(1 * time.Second)
+		// 	continue
+		// } else {
+		// 	isLog = false
+		// }
 		fmt.Printf("accept a communication connection from %v %v\n", conn.RemoteAddr().String(), time.Now().Format("2006-01-02 15:04:05"))
 		communicationConn.Id = GenerateConnId()
 		mesg := "communication:" + communicationConn.Id + ":xy"
@@ -98,7 +106,6 @@ func (communicationConn *CommunicationConnection) EstablishCommunicationConnS(se
 		mesgACKSlice := strings.Split(string(connACK[:n]), ":")
 		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id && mesgACKSlice[2] == "wodexinxin" {
 			communicationConn.Conn = &conn
-			communicationConn.Communication = true
 			communicationConn.StartTime = time.Now().Unix()
 			communicationConn.IP = strings.Split(conn.RemoteAddr().String(), ":")[0]
 			fmt.Printf("cloud server<--->remote client is connected!\nfrom %v id:%v %v\n", conn.RemoteAddr().String(), communicationConn.Id, time.Now().Format("2006-01-02 15:04:05"))
@@ -108,7 +115,58 @@ func (communicationConn *CommunicationConnection) EstablishCommunicationConnS(se
 	}
 }
 
-func EstablishCommunicationConnC(addr string) *CommunicationConnection {
+func EstablishCommunicationConnS(conn net.Conn) (*CommunicationConnection, error) {
+	var comConn CommunicationConnection
+	comConn.Id = GenerateConnId()
+	mesg := make([]byte, 1024)
+	_, writeErr := conn.Write([]byte("communication:" + comConn.Id + ":xy"))
+	if writeErr != nil {
+		return nil, fmt.Errorf("communication connection establish error when write")
+	}
+	n, readErr := conn.Read(mesg)
+	if readErr != nil {
+		return nil, fmt.Errorf("communication connection establish error when read")
+	}
+	mesgSlice := strings.Split(string(mesg[:n]), ":")
+	if len(mesgSlice) >= 3 && mesgSlice[0] == "RCReady" && mesgSlice[1] == comConn.Id && mesgSlice[2] == "wodexinxin" {
+		comConn.Conn = &conn
+		comConn.StartTime = time.Now().Unix()
+		comConn.IP = strings.Split(conn.RemoteAddr().String(), ":")[0]
+		comConn.CommunicateChan = make(chan int)
+		comConn.Alive = true
+		localListener, listenerErr := StartListener(mesgSlice[3])
+		if listenerErr != nil {
+			fmt.Println(listenerErr)
+			return nil, listenerErr
+		}
+		comConn.Listener = localListener
+		return &comConn, nil
+	} else {
+		return nil, fmt.Errorf("wrong messages when establish communication connection:%v", string(mesg[:n]))
+	}
+}
+
+func (communicationConn *CommunicationConnection) EstablishNewConn(id string, connPool map[string]*RemoteConnection) (*RemoteConnection, error) {
+	fmt.Printf("stop KeepAliveS ")
+	sendErr := communicationConn.SendNewConnectionRequest(id) // make new Connection
+	fmt.Printf("stopped\n")
+	if sendErr != nil {
+		return nil, sendErr
+	}
+	fmt.Printf("New request has sent, find connections...")
+	for n := 0; n < 10; n++ {
+		if conn, ok := connPool[id]; ok {
+			delete(connPool, id)
+			fmt.Println("found connections...")
+			return conn, nil
+		} else {
+			time.Sleep(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("times out")
+}
+
+func EstablishCommunicationConnC(addr string, localPort string) *CommunicationConnection {
 	var communicationConn CommunicationConnection
 	var isLog = false
 	communicationConnACK := make([]byte, 512)
@@ -124,6 +182,10 @@ func EstablishCommunicationConnC(addr string) *CommunicationConnection {
 		} else {
 			isLog = false
 		}
+		_, writeErr := conn.Write([]byte("comConn"))
+		if writeErr != nil {
+			fmt.Println(writeErr)
+		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {
 			fmt.Printf("coonection read error!%v\n", readErr)
@@ -136,9 +198,11 @@ func EstablishCommunicationConnC(addr string) *CommunicationConnection {
 		if mesSlice[0] == "communication" && mesSlice[2] == "xy" {
 			communicationConn.Conn = &conn
 			communicationConn.Id = mesSlice[1]
-			communicationConn.Communication = true
+			communicationConn.Alive = true
 			communicationConn.StartTime = time.Now().Unix()
-			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id + ":wodexinxin"))
+			communicationConn.CommunicateChan = make(chan int)
+			communicationConn.Port = localPort
+			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id + ":wodexinxin:" + localPort))
 			if writeErr != nil {
 				fmt.Printf("communication connection write error!%v\n", writeErr)
 				_ = conn.Close()
@@ -154,36 +218,40 @@ func EstablishCommunicationConnC(addr string) *CommunicationConnection {
 	return &communicationConn
 }
 
-func (communicationConn *CommunicationConnection) KeepAliveS(listener *net.TCPListener) {
-	cache := make([]byte, 1024)
+// goroutine
+func (communicationConn *CommunicationConnection) KeepCommunicationConn() {
+	mesg := make([]byte, 512)
 	for {
+		if !communicationConn.Alive {
+			fmt.Printf("communication connection closed %v\n", communicationConn.IP)
+			return
+		}
 		select {
 		case <-communicationConn.CommunicateChan:
-			time.Sleep(2 * time.Second) // Sleep for make new connection
+			time.Sleep(3 * time.Second) // Sleep for make new connection
 		default:
+			time.Sleep(1 * time.Second)
 			_, writeErr := communicationConn.Write([]byte("isAlive"))
 			if writeErr != nil {
 				fmt.Printf("communication connection write err %v\n", writeErr)
-				fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
-				time.Sleep(1 * time.Second)
 				_ = communicationConn.Close()
-				communicationConn.EstablishCommunicationConnS(listener)
-				continue
+				return
 			}
-			n, readErr := communicationConn.Read(cache)
+			n, readErr := communicationConn.Read(mesg)
 			if readErr != nil {
 				fmt.Printf("communication connection read error %v\n", readErr)
-				fmt.Printf("close and reconnect a second later.%v\n", time.Now().Format("2006-01-02 15:04:05"))
-				time.Sleep(1 * time.Second)
 				_ = communicationConn.Close()
-				communicationConn.EstablishCommunicationConnS(listener)
+				return
+			}
+			if string(mesg[:n]) == "alive" {
+				communicationConn.Alive = true
 				continue
 			}
-			if string(cache[:n]) == "alive" {
-				communicationConn.Alive = true
+			if string(mesg[:n]) == "closexy" {
+				_ = communicationConn.Close() // TODO:remove from comConn pool
+				return
 			}
 		}
-		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -199,4 +267,18 @@ func (communicationConn *CommunicationConnection) SendNewConnectionRequest(id st
 
 func (communicationConn *CommunicationConnection) StopCheckAlive() {
 	communicationConn.CommunicateChan <- 1
+}
+
+func StartListener(port string) (*net.TCPListener, error) {
+	listenAddr := net.IPv4(0, 0, 0, 0)
+	portInt, convErr := strconv.Atoi(port)
+	if convErr != nil || portInt < 0 || portInt > 65535 {
+		return nil, fmt.Errorf("port error %v", port)
+	}
+	tcpAddr := net.TCPAddr{IP: listenAddr, Port: portInt, Zone: ""}
+	listenRemote, listenErr := net.ListenTCP("tcp", &tcpAddr)
+	if listenErr != nil {
+		return nil, fmt.Errorf("listen error:%v", listenErr)
+	}
+	return listenRemote, nil
 }

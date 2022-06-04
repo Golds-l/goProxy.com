@@ -25,7 +25,7 @@ func main() {
 	addrCloud := argsMap["CloudServer"] + ":" + argsMap["cloudServerPort"]
 	addrLocal := argsMap["remoteHost"] + ":" + argsMap["remoteHostPort"]
 	cache := make([]byte, 10240)
-	communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+	communicationConn = communication.EstablishCommunicationConnC(addrCloud, argsMap["localPort"])
 	fmt.Println("connected to the server!")
 	for {
 		n, readErr := communicationConn.Read(cache)
@@ -34,7 +34,7 @@ func main() {
 			fmt.Println("close and reconnect in a second..")
 			_ = communicationConn.Close()
 			time.Sleep(1 * time.Second)
-			communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+			communicationConn = communication.EstablishCommunicationConnC(addrCloud, argsMap["localPort"])
 			fmt.Println("reconnect successfully!")
 			continue
 		}
@@ -45,7 +45,7 @@ func main() {
 				fmt.Printf("communication connection write error. %v\n", writeErr)
 				fmt.Printf("close and reconnect a second later. %v\n", time.Now().Format("2006-01-02 15:04:05"))
 				time.Sleep(1 * time.Second)
-				communicationConn = communication.EstablishCommunicationConnC(addrCloud)
+				communicationConn = communication.EstablishCommunicationConnC(addrCloud, argsMap["localPort"])
 				continue
 			}
 			continue

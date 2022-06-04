@@ -94,6 +94,18 @@ func GetArgsRemoteClient() (map[string]string, bool) {
 			} else {
 				fmt.Println(os.Args[i+1], "ip addr illegal")
 			}
+		case "-lP":
+			if isPort(os.Args[i+1]) {
+				args["localPort"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "port illegal")
+			}
+		case "-localPort":
+			if isPort(os.Args[i+1]) {
+				args["localPort"] = os.Args[i+1]
+			} else {
+				fmt.Println(os.Args[i+1], "port illegal")
+			}
 		}
 	}
 	_, cloudServerAddrExist := args["CloudServer"]
@@ -142,11 +154,12 @@ func GetArgsCloudServer() (map[string]string, bool) {
 			}
 		}
 	}
-	_, portLocalExist := args["localPort"]
+	// _, portLocalExist := args["localPort"]
 	_, portRemoteExist := args["remotePort"]
-	if portLocalExist && portRemoteExist && args["localPort"] != args["remotePort"] {
+	if portRemoteExist {
 		return args, true
 	} else {
+		fmt.Println(args)
 		return args, false
 	}
 }
