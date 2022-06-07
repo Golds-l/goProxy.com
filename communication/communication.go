@@ -70,51 +70,6 @@ func WriteAlive(conn *net.Conn, s string) {
 	}
 }
 
-func (communicationConn *CommunicationConnection) EstablishCommunicationConnS(conn net.Conn) {
-	connACK := make([]byte, 512)
-	// var isLog = false
-	for {
-		// _ = serverListener.SetDeadline(time.Now().Add(10 * time.Second))
-		// conn, acceptErr := serverListener.Accept()
-		// if acceptErr != nil {
-		// 	if !isLog {
-		// 		fmt.Println("Can not establish communication connections,retry in a second")
-		// 		isLog = true
-		// 	}
-		// 	time.Sleep(1 * time.Second)
-		// 	continue
-		// } else {
-		// 	isLog = false
-		// }
-		fmt.Printf("accept a communication connection from %v %v\n", conn.RemoteAddr().String(), time.Now().Format("2006-01-02 15:04:05"))
-		communicationConn.Id = GenerateConnId()
-		mesg := "communication:" + communicationConn.Id + ":xy"
-		_, writeErr := conn.Write([]byte(mesg))
-		if writeErr != nil {
-			fmt.Printf("communication connection write error! %v\n", writeErr)
-			fmt.Printf("connection:%v will be closed\n", conn)
-			_ = conn.Close()
-			continue
-		}
-		n, readErr := conn.Read(connACK)
-		if readErr != nil {
-			fmt.Printf("communication connection read error! %v\n", writeErr)
-			fmt.Printf("connection:%v will be closed\n", communicationConn.Id)
-			_ = conn.Close()
-			continue
-		}
-		mesgACKSlice := strings.Split(string(connACK[:n]), ":")
-		if mesgACKSlice[0] == "RCReady" && mesgACKSlice[1] == communicationConn.Id && mesgACKSlice[2] == "wodexinxin" {
-			communicationConn.Conn = &conn
-			communicationConn.StartTime = time.Now().Unix()
-			communicationConn.IP = strings.Split(conn.RemoteAddr().String(), ":")[0]
-			fmt.Printf("cloud server<--->remote client is connected!\nfrom %v id:%v %v\n", conn.RemoteAddr().String(), communicationConn.Id, time.Now().Format("2006-01-02 15:04:05"))
-			return
-		}
-		_ = conn.Close()
-	}
-}
-
 func EstablishCommunicationConnS(conn net.Conn) (*CommunicationConnection, error) {
 	var comConn CommunicationConnection
 	comConn.Id = GenerateConnId()
@@ -160,7 +115,7 @@ func (communicationConn *CommunicationConnection) EstablishNewConn(id string, co
 			fmt.Println("found connections...")
 			return conn, nil
 		} else {
-			time.Sleep(1 * time.Second)
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 	return nil, fmt.Errorf("times out")
