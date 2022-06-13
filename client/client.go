@@ -6,14 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Golds-l/goproxy/client"
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
 )
 
 func main() {
 	var communicationConn *communication.CommunicationConnection
-	var connections []*client.RemoteConnection
+	var connections []*RemoteConnection
 	var aliveNum int
 	argsMap, ok := other.GetArgsRemoteClient()
 	fmt.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
@@ -53,7 +52,7 @@ func main() {
 		mesgSlice := strings.Split(string(cache[:n]), ":")
 		if mesgSlice[0] == "NEWC" {
 			fmt.Println("receive new connection request, establish connection..", time.Now().Format("2006-01-02 15:04:05"))
-			conn, mkErr := client.MakeNewClient(addrCloud, addrLocal, mesgSlice[1], argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
+			conn, mkErr := MakeNewClient(addrCloud, addrLocal, mesgSlice[1], argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
 			if mkErr != nil {
 				fmt.Println("can not establish connection.", mkErr, time.Now().Format("2006-01-02 15:04:05"))
 				continue
@@ -63,7 +62,7 @@ func main() {
 			go conn.CloudServerToRemoteClient(q)
 			fmt.Printf("connection established. Id:%v. Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 			connections = append(connections, conn)
-			aliveNum, connections = client.CheckAlive(connections)
+			aliveNum, connections = CheckAlive(connections)
 			fmt.Printf("Number of connections: %v\n", aliveNum)
 			continue
 		}

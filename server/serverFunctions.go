@@ -1,14 +1,14 @@
-package server
+package main
 
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/Golds-l/goproxy/communication"
-	"github.com/Golds-l/goproxy/log"
 )
 
 type CloudConnection struct {
@@ -82,13 +82,13 @@ func (conn *CloudConnection) Close() error {
 
 func MakeNewConn(communicationConn *communication.CommunicationConnection, listener *net.TCPListener, conn *CloudConnection) error {
 	conn.Id = communication.GenerateConnId()
-	fmt.Printf("stop KeepAliveS ")
+	log.Printf("stop KeepAliveS ")
 	sendErr := communicationConn.SendNewConnectionRequest(conn.Id) // make new Connection
-	fmt.Printf("stopped\n")
+	log.Printf("stopped\n")
 	if sendErr != nil {
 		return sendErr
 	}
-	fmt.Println("New request has sent, wait connections...")
+	log.Println("New request has sent, wait connections...")
 	for n := 0; n < 8; n++ {
 		deadlineErr := listener.SetDeadline(time.Now().Add(3 * time.Second))
 		if deadlineErr != nil {
@@ -96,15 +96,15 @@ func MakeNewConn(communicationConn *communication.CommunicationConnection, liste
 		}
 		newConn, newConnectionErr := listener.AcceptTCP() // for loop to establish connection
 		if newConnectionErr != nil {
-			fmt.Printf("Connection etablished error. %v\n", newConnectionErr)
+			log.Printf("Connection etablished error. %v\n", newConnectionErr)
 			continue
 		}
 		if strings.Split(newConn.RemoteAddr().String(), ":")[0] != communicationConn.IP {
-			fmt.Printf("unkonw connection accpeted:%v\n", newConn.RemoteAddr().String())
+			log.Printf("unkonw connection accpeted:%v\n", newConn.RemoteAddr().String())
 			_ = newConn.Close()
 			continue
 		} else {
-			fmt.Println("Establish a connection with a remote client..")
+			log.Println("Establish a connection with a remote client..")
 			conn.ConnRemote = newConn
 			conn.Alive = true
 			conn.StartTime = time.Now().Unix()
@@ -118,11 +118,11 @@ func MakeNewConn(communicationConn *communication.CommunicationConnection, liste
 func CloseCloudConnection(conn *CloudConnection) {
 	err := conn.Close()
 	if err != nil {
-		fmt.Printf("Cloud connection close error! %v\n", err)
+		log.Printf("Cloud connection close error! %v\n", err)
 		conn.Alive = false
 	} else {
 		conn.Alive = false
-		fmt.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
+		log.Printf("Connection closed. Id:%v", conn.Id)
 	}
 }
 
@@ -138,7 +138,7 @@ func CheckAlive(conns []*CloudConnection) (int, []*CloudConnection) {
 	return len(newConns), newConns
 }
 
-// establish connection with nodes,make communication connction. goroutine
+// ListenRemotePort establish connection with nodes,establish communication connction. goroutine
 func ListenRemotePort(remoteListener net.TCPListener, connPool map[string]*communication.RemoteConnection) {
 	// TODO: not only listen communication connection
 	mesg := make([]byte, 1024)
@@ -146,37 +146,34 @@ func ListenRemotePort(remoteListener net.TCPListener, connPool map[string]*commu
 		newConn, listenErr := remoteListener.AcceptTCP() // accept a conn from a node(maybe legal)
 		if listenErr != nil {
 			if newConn != nil {
-				fmt.Printf("remote listener error, close connection.%v", listenErr)
+				log.Printf("remote listener error, close connection.%v", listenErr)
 				_ = newConn.Close()
 				continue
 			} else {
-				fmt.Printf("remote listener error.%v", listenErr)
+				log.Printf("remote listener error.%v", listenErr)
 				continue
 			}
 		}
-		fmt.Printf("remote port accpeted a connection from:%v", newConn.RemoteAddr())
-		log.LogNow()
-		newConn.SetReadDeadline(time.Now().Add(time.Second))
+		log.Printf("remote port accpeted a connection from:%v", newConn.RemoteAddr())
+		_ = newConn.SetReadDeadline(time.Now().Add(time.Second))
 		n, readErr := newConn.Read(mesg)
 		if readErr != nil {
-			fmt.Printf("error when receivce mesg:%v\n", readErr)
+			log.Printf("error when receivce mesg:%v\n", readErr)
 			_ = newConn.Close()
 			continue
 		}
-		newConn.SetReadDeadline(time.Time{})
+		_ = newConn.SetReadDeadline(time.Time{})
 		mesgSlice := strings.Split(string(mesg[:n]), ":")
 		if mesgSlice[0] == "comConn" {
 			comConn, mkErr := communication.EstablishCommunicationConnS(newConn) // try to establish communication conn
 			if mkErr != nil {
-				fmt.Println(mkErr)
-				log.LogNow()
+				log.Println(mkErr)
 				_ = newConn.Close()
 				continue
 			}
 			go comConn.KeepCommunicationConn()
 			go ListenLocalPort(comConn, connPool)
-			fmt.Printf("Cloud<----->Remote.communication conection established.from:%v", comConn.IP)
-			log.LogNow()
+			log.Printf("Cloud<----->Remote.communication conection established.from:%v", comConn.IP)
 		} else if mesgSlice[0] == "conn" {
 			var RConn communication.RemoteConnection
 			RConn.Conn = newConn
@@ -189,14 +186,13 @@ func ListenRemotePort(remoteListener net.TCPListener, connPool map[string]*commu
 			}
 			connPool[mesgSlice[1]] = &RConn
 		} else {
-			fmt.Printf("illegal connection from:%v", newConn.RemoteAddr())
-			log.LogNow()
+			log.Printf("illegal connection from:%v", newConn.RemoteAddr())
 			_ = newConn.Close()
 		}
 	}
 }
 
-// accept conn from local client, establish it with remote client. goroutine
+// ListenLocalPort accept conn from local client, establish it with remote client. goroutine
 func ListenLocalPort(comConn *communication.CommunicationConnection, connPool map[string]*communication.RemoteConnection) {
 	for {
 		if !comConn.Alive {
@@ -207,18 +203,16 @@ func ListenLocalPort(comConn *communication.CommunicationConnection, connPool ma
 			if connLocal != nil {
 				_ = connLocal.Close()
 			}
-			fmt.Printf("local listener error %v\n", listenErr)
+			log.Printf("local listener error %v\n", listenErr)
 			continue
 		}
-		fmt.Printf("port %v receive a request from:%v", connLocal.LocalAddr(), connLocal.RemoteAddr())
-		log.LogNow()
+		log.Printf("port %v receive a request from:%v", connLocal.LocalAddr(), connLocal.RemoteAddr())
 		var newConn CloudConnection
 		newConn.Id = communication.GenerateConnId()
 		connRemote, rErr := comConn.EstablishNewConn(newConn.Id, connPool)
 		if rErr != nil {
-			fmt.Printf("establish error when connect remote:%v", rErr)
-			connLocal.Close()
-			log.LogNow()
+			log.Printf("establish error when connect remote:%v", rErr)
+			_ = connLocal.Close()
 			continue
 		}
 		newConn.ConnLocal = &connLocal
@@ -227,11 +221,10 @@ func ListenLocalPort(comConn *communication.CommunicationConnection, connPool ma
 		newConn.Alive = true
 		newConn.CommunicateChan = make(chan int)
 		if connRemote.RedundantMesg != "" {
-			(*newConn.ConnLocal).Write([]byte(connRemote.RedundantMesg))
+			_, _ = (*newConn.ConnLocal).Write([]byte(connRemote.RedundantMesg))
 		}
 		go newConn.LocalToCloudServer()
 		go newConn.CloudServerToLocal()
-		fmt.Printf("connection established.Id:%v", newConn.Id)
-		log.LogNow()
+		log.Printf("connection established.Id:%v", newConn.Id)
 	}
 }

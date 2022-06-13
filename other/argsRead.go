@@ -2,6 +2,7 @@ package other
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -162,4 +163,13 @@ func GetArgsCloudServer() (map[string]string, bool) {
 		fmt.Println(args)
 		return args, false
 	}
+}
+
+func InitLog() error {
+	logFile, lFErr := os.OpenFile("./proxy.log", os.O_RDWR|os.O_APPEND, 0666)
+	if lFErr != nil {
+		return lFErr
+	}
+	log.SetOutput(logFile)
+	return nil
 }

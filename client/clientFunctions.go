@@ -1,8 +1,8 @@
-package client
+package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -75,15 +75,14 @@ func (conn *RemoteConnection) Close() error {
 func MakeNewClient(serverAddr, localAddr, id string, host string) (*RemoteConnection, error) {
 	var conn RemoteConnection
 	for i := 0; i < 5; i++ {
-		fmt.Printf("try to connect...")
+		log.Printf("try to connect...")
 		connServer, connServerErr := net.DialTimeout("tcp", serverAddr, 3*time.Second)
 		if connServerErr != nil {
-			fmt.Println()
-			fmt.Println("connection establish error", connServerErr)
+			log.Println("connection establish error", connServerErr)
 			continue
 		}
 		connServer.Write([]byte("conn:" + id + ":"))
-		fmt.Println("connections establish,connect local service", time.Now().Format("2006-01-02 15:04:05"))
+		log.Println("connections establish,connect local service", time.Now().Format("2006-01-02 15:04:05"))
 		connLocal, connLocalErr := net.Dial("tcp", localAddr) // connect ssh server
 		if connLocalErr != nil {
 			_ = connServer.Close()
@@ -104,19 +103,19 @@ func KeepAliveC(conn *communication.CommunicationConnection, addr string) {
 	for {
 		n, readErr := conn.Read(cache)
 		if readErr != nil {
-			fmt.Printf("communication connection read err. %v\n", readErr)
-			fmt.Println("close and reconnect in a second..")
+			log.Printf("communication connection read err. %v\n", readErr)
+			log.Println("close and reconnect in a second..")
 			_ = conn.Close()
 			time.Sleep(1 * time.Second)
 			conn = communication.EstablishCommunicationConnC(addr, conn.Port)
 		}
 		if string(cache[:n]) == "isAlive" {
-			fmt.Printf("connection %v alive.. %v\n", conn.Id, time.Now())
+			log.Printf("connection %v alive.. %v\n", conn.Id, time.Now())
 		}
 		_, writeErr := conn.Write([]byte("alive"))
 		if writeErr != nil {
-			fmt.Printf("client communication connection %v write err. %v\n", conn.Id, writeErr)
-			fmt.Println("close and reconnect in a second..")
+			log.Printf("client communication connection %v write err. %v\n", conn.Id, writeErr)
+			log.Println("close and reconnect in a second..")
 			time.Sleep(1 * time.Second)
 			conn = communication.EstablishCommunicationConnC(addr, conn.Port)
 		}
@@ -126,10 +125,10 @@ func KeepAliveC(conn *communication.CommunicationConnection, addr string) {
 func CloseRemoteConnection(conn *RemoteConnection) {
 	err := conn.Close()
 	if err != nil {
-		fmt.Printf("remote connection close error! Id:%v\n%v\n", conn.Id, err)
+		log.Printf("remote connection close error! Id:%v\n%v\n", conn.Id, err)
 	} else {
 		conn.Alive = false
-		fmt.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
+		log.Printf("Connection closed. Id:%v Time:%v\n", conn.Id, time.Now().Format("2006-01-02 15:04:05"))
 	}
 }
 

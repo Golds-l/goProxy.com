@@ -3,6 +3,7 @@ package communication
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"strconv"
@@ -51,10 +52,13 @@ func (c *CommunicationConnection) Write(s []byte) (int, error) {
 
 func (c *CommunicationConnection) Close() error {
 	c.Alive = false
-	c.StartTime = 0
-	e := (*c.Conn).Close()
-	(*c.Listener).Close()
-	return e
+	//c.StartTime = 0
+	connErr := (*c.Conn).Close()
+	listenerErr := (*c.Listener).Close()
+	if connErr != nil || listenerErr != nil {
+		return fmt.Errorf(connErr.Error() + listenerErr.Error())
+	}
+	return nil
 }
 
 func (c *CommunicationConnection) Read(b []byte) (int, error) {
@@ -91,7 +95,7 @@ func EstablishCommunicationConnS(conn net.Conn) (*CommunicationConnection, error
 		comConn.Alive = true
 		localListener, listenerErr := StartListener(mesgSlice[3])
 		if listenerErr != nil {
-			fmt.Println(listenerErr)
+			log.Println(listenerErr)
 			return nil, listenerErr
 		}
 		comConn.Listener = localListener
@@ -102,17 +106,17 @@ func EstablishCommunicationConnS(conn net.Conn) (*CommunicationConnection, error
 }
 
 func (communicationConn *CommunicationConnection) EstablishNewConn(id string, connPool map[string]*RemoteConnection) (*RemoteConnection, error) {
-	fmt.Printf("stop KeepAliveS ")
+	log.Printf("stop KeepAliveS ")
 	sendErr := communicationConn.SendNewConnectionRequest(id) // make new Connection
-	fmt.Printf("stopped\n")
+	log.Printf("stopped\n")
 	if sendErr != nil {
 		return nil, sendErr
 	}
-	fmt.Printf("New request has sent, find connections...")
+	log.Printf("New request has sent, find connections...")
 	for n := 0; n < 10; n++ {
 		if conn, ok := connPool[id]; ok {
 			delete(connPool, id)
-			fmt.Println("found connections...")
+			log.Println("found connections...")
 			return conn, nil
 		} else {
 			time.Sleep(10 * time.Millisecond)
@@ -129,7 +133,7 @@ func EstablishCommunicationConnC(addr string, localPort string) *CommunicationCo
 		conn, connErr := net.Dial("tcp", addr)
 		if connErr != nil {
 			if !isLog {
-				fmt.Println("Can not connect cloud server... Retrying")
+				log.Println("Can not connect cloud server... Retrying")
 			}
 			isLog = true
 			time.Sleep(1 * time.Second)
@@ -139,13 +143,13 @@ func EstablishCommunicationConnC(addr string, localPort string) *CommunicationCo
 		}
 		_, writeErr := conn.Write([]byte("comConn"))
 		if writeErr != nil {
-			fmt.Println(writeErr)
+			log.Println(writeErr)
 		}
 		n, readErr := conn.Read(communicationConnACK)
 		if readErr != nil {
-			fmt.Printf("coonection read error!%v\n", readErr)
+			log.Printf("coonection read error!%v\n", readErr)
 			_ = conn.Close()
-			fmt.Println("close and retry in a second")
+			log.Println("close and retry in a second")
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -159,13 +163,13 @@ func EstablishCommunicationConnC(addr string, localPort string) *CommunicationCo
 			communicationConn.Port = localPort
 			_, writeErr := communicationConn.Write([]byte("RCReady:" + communicationConn.Id + ":wodexinxin:" + localPort))
 			if writeErr != nil {
-				fmt.Printf("communication connection write error!%v\n", writeErr)
+				log.Printf("communication connection write error!%v\n", writeErr)
 				_ = conn.Close()
-				fmt.Println("close and retry in a second")
+				log.Println("close and retry in a second")
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			fmt.Printf("communication connection established. Id: %v %v\n", communicationConn.Id, time.Now().Format("2006-01-02 15:04:05"))
+			log.Printf("communication connection established. Id: %v \n", communicationConn.Id)
 			break
 		}
 		_ = conn.Close()
@@ -178,7 +182,7 @@ func (communicationConn *CommunicationConnection) KeepCommunicationConn() {
 	mesg := make([]byte, 512)
 	for {
 		if !communicationConn.Alive {
-			fmt.Printf("communication connection closed %v\n", communicationConn.IP)
+			log.Printf("communication connection closed %v\n", communicationConn.IP)
 			return
 		}
 		select {
@@ -188,13 +192,13 @@ func (communicationConn *CommunicationConnection) KeepCommunicationConn() {
 			time.Sleep(1 * time.Second)
 			_, writeErr := communicationConn.Write([]byte("isAlive"))
 			if writeErr != nil {
-				fmt.Printf("communication connection write err %v\n", writeErr)
+				log.Printf("communication connection write err %v\n", writeErr)
 				_ = communicationConn.Close()
 				return
 			}
 			n, readErr := communicationConn.Read(mesg)
 			if readErr != nil {
-				fmt.Printf("communication connection read error %v\n", readErr)
+				log.Printf("communication connection read error %v\n", readErr)
 				_ = communicationConn.Close()
 				return
 			}
@@ -214,7 +218,7 @@ func (communicationConn *CommunicationConnection) SendNewConnectionRequest(id st
 	communicationConn.StopCheckAlive()
 	_, writeErr := communicationConn.Write([]byte("NEWC:" + id)) // make new Connection
 	if writeErr != nil {
-		fmt.Println(writeErr)
+		log.Println(writeErr)
 		return errors.New("communication connection write error when send new connection request")
 	}
 	return nil

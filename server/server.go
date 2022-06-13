@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -9,14 +9,18 @@ import (
 
 	"github.com/Golds-l/goproxy/communication"
 	"github.com/Golds-l/goproxy/other"
-	"github.com/Golds-l/goproxy/server"
 )
 
 func main() {
+	logErr := other.InitLog()
+	if logErr != nil {
+		log.Println(logErr)
+		os.Exit(0)
+	}
 	argsMap, ok := other.GetArgsCloudServer()
 	if !ok {
-		fmt.Println(argsMap)
-		fmt.Println("args error!")
+		log.Println(argsMap)
+		log.Println("args error!")
 		os.Exit(0)
 	}
 	listenAddr := net.IPv4(0, 0, 0, 0)
@@ -24,14 +28,12 @@ func main() {
 	tcpAddr := net.TCPAddr{IP: listenAddr, Port: listenPort, Zone: ""}
 	listenRemote, err := net.ListenTCP("tcp", &tcpAddr)
 	if err != nil {
-		fmt.Println("listen error, please check the port.", err)
+		log.Println("listen error, please check the port.", err)
 		os.Exit(0)
 	}
 	connPool := make(map[string]*communication.RemoteConnection)
-	fmt.Printf("Start listening. Local port:%v Remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
-	fmt.Printf("time: %v\n", time.Now().Format("2006-01-02 15:04:05"))
-	go server.ListenRemotePort(*listenRemote, connPool)
-	for {
-
-	}
+	log.Printf("Start listening. Local port:%v Remote port:%v\n", argsMap["localPort"], argsMap["remotePort"])
+	log.Printf("time: %v\n", time.Now().Format("2006-01-02 15:04:05"))
+	go ListenRemotePort(*listenRemote, connPool)
+	select {}
 }
