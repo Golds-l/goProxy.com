@@ -1,11 +1,11 @@
-Unit]
+[Unit]
 Description=proxy
 
 [Service]
 Type=forking
 ExecStart=/path/to/goproxy/proxystart.sh
 ExecStop=/path/to/goproxy/proxystop.sh
-ExecReload=/path/ubuntu/goproxy/restart.sh
+ExecReload=/path/to/goproxy/restart.sh
 Restart=on-failure
 RestartSec=10
 

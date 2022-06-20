@@ -54,9 +54,11 @@ func (c *CommunicationConnection) Close() error {
 	c.Alive = false
 	//c.StartTime = 0
 	connErr := (*c.Conn).Close()
-	listenerErr := (*c.Listener).Close()
-	if connErr != nil || listenerErr != nil {
-		return fmt.Errorf(connErr.Error() + listenerErr.Error())
+	if c.Listener != nil {
+		_ = (*c.Listener).Close()
+	}
+	if connErr != nil {
+		return fmt.Errorf(connErr.Error())
 	}
 	return nil
 }
