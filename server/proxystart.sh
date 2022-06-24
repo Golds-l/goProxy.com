@@ -11,7 +11,6 @@ if [ -e $pidpath ]; then
 else
     touch $pidpath
 fi
-echo "start: $(date "+%Y-%m-%d %H:%M:%S")" >> $logpath
 nohup /path/to/goproxy/server -rP 2001 >> $logpath &
 echo $! > $pidpath
 sleep 0.1

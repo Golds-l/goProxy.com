@@ -166,7 +166,7 @@ func GetArgsCloudServer() (map[string]string, bool) {
 }
 
 func InitLog() error {
-	logFile, lFErr := os.OpenFile("/var/log/proxy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	logFile, lFErr := os.OpenFile("/var/log/proxy.log", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0740)
 	if lFErr != nil {
 		return lFErr
 	}

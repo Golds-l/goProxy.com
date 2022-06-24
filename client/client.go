@@ -72,7 +72,5 @@ func main() {
 			log.Printf("Number of connections: %v\n", aliveNum)
 			continue
 		}
-
-		log.Println(mesg)
 	}
 }
