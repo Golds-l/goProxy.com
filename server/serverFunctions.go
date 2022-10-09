@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Golds-l/goproxy/communication"
+	"github.com/xin6211/goproxy/communication"
 )
 
 type CloudConnection struct {

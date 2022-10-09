@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Golds-l/goproxy/communication"
-	"github.com/Golds-l/goproxy/other"
+	"github.com/xin6211/goproxy/communication"
+	"github.com/xin6211/goproxy/other"
 )
 
 func main() {
