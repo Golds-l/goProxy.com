@@ -1,3 +1,3 @@
-module github.com/Golds-l/goproxy/communication
+module github.com/xin6211/goproxy/communication
 
 go 1.18

@@ -1,3 +1,3 @@
-module github.com/Golds-l/goproxy/client
+module github.com/xin6211/goproxy/client
 
 go 1.18
