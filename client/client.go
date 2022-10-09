@@ -7,21 +7,21 @@ import (
 	"time"
 
 	"github.com/xin6211/goproxy/communication"
-	"github.com/xin6211/goproxy/other"
+	"github.com/xin6211/goproxy/util"
 )
 
 func main() {
 	var communicationConn *communication.CommunicationConnection
 	var connections []*RemoteConnection
 	var aliveNum int
-	argsMap, ok := other.GetArgsRemoteClient()
+	argsMap, ok := util.GetArgsRemoteClient()
 	log.Printf("server:%v ", argsMap["CloudServer"]+":"+argsMap["cloudServerPort"])
 	log.Printf("host:%v\n", argsMap["remoteHost"]+":"+argsMap["remoteHostPort"])
 	if !ok {
 		log.Println("args illegal, check and restart")
 		os.Exit(0)
 	}
-	logErr := other.InitLog()
+	logErr := util.InitLog()
 	if logErr != nil {
 		log.Println(logErr)
 		os.Exit(0)

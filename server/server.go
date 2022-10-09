@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/xin6211/goproxy/util"
 	"log"
 	"net"
 	"os"
@@ -8,16 +9,15 @@ import (
 	"time"
 
 	"github.com/xin6211/goproxy/communication"
-	"github.com/xin6211/goproxy/other"
 )
 
 func main() {
-	logErr := other.InitLog()
+	logErr := util.InitLog()
 	if logErr != nil {
 		log.Println(logErr)
 		os.Exit(0)
 	}
-	argsMap, ok := other.GetArgsCloudServer()
+	argsMap, ok := util.GetArgsCloudServer()
 	if !ok {
 		log.Println(argsMap)
 		log.Println("args error!")
