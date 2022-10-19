@@ -22,7 +22,8 @@ type Buffer struct {
 	R         pointer
 	NodeNum   int
 	NodeLen   int
-	mu        sync.Mutex
+	readMu    *sync.Mutex
+	writeMu   *sync.Mutex
 	writeCond *sync.Cond
 	readCond  *sync.Cond
 }
@@ -52,88 +53,102 @@ func (b *Buffer) InitBuffer(n int, l int) {
 	b.NodeLen = l
 	b.readCond = sync.NewCond(&sync.Mutex{})
 	b.writeCond = sync.NewCond(&sync.Mutex{})
+	b.readMu = &sync.Mutex{}
+	b.writeMu = &sync.Mutex{}
 }
 
 func (b *Buffer) Write(c []byte) {
 	l := len(c)
 	p := b.W.n
+	//b.W := b.W
 	for l > 0 {
-		writePointer := b.W
-		// TODO: 读写锁需要分离
 		// 锁定当前读指针
-		b.mu.Lock()
+		b.readMu.Lock()
 		readPointer := b.R
-		b.mu.Unlock()
+		b.readMu.Unlock()
 		// 临界节点写，读写指针处于同一节点
-		if writePointer.n == readPointer.n && readPointer.offset != writePointer.offset {
+		if b.W.n == readPointer.n && readPointer.offset > b.W.offset {
 			// 剩余容量不足，等待
-			if writePointer.offset+l >= readPointer.offset {
+			if b.W.offset+l >= readPointer.offset {
+				b.writeCond.L.Lock()
 				b.writeCond.Wait()
+				b.writeCond.L.Unlock()
 				continue
 			} else {
-				copy(p.Content[writePointer.offset:writePointer.offset+l], c[len(c)-l:])
-				writePointer.offset += l
+				copy(p.Content[b.W.offset:b.W.offset+l], c[len(c)-l:])
+				b.W.offset += l
 				l = 0
+				b.readCond.Broadcast()
 			}
 		} else {
 			// 当前节点足够写
-			if l < b.NodeLen-writePointer.offset {
-				copy(p.Content[writePointer.offset:writePointer.offset+l], c[len(c)-l:])
-				writePointer.offset += l
+			if l < b.NodeLen-b.W.offset {
+				copy(p.Content[b.W.offset:b.W.offset+l], c[len(c)-l:])
+				b.W.offset += l
 				l = 0
-				// 当前节点不够写，全部写满
+				b.readCond.Broadcast()
 			} else {
-				copy(p.Content[writePointer.offset:], c[len(c)-l:len(c)-l+b.NodeLen-writePointer.offset])
-				l -= b.NodeLen - writePointer.offset
+				// 当前节点不够写，写满该节点
+				copy(p.Content[b.W.offset:], c[len(c)-l:len(c)-l+b.NodeLen-b.W.offset])
+				l -= b.NodeLen - b.W.offset
 				p = p.Next
-				writePointer.n = p
-				writePointer.offset = 0
+				b.W.n = p
+				b.W.offset = 0
+				b.readCond.Broadcast()
 			}
 		}
 	}
-	b.W.n = p
+	b.W = b.W
 }
 
 func (b *Buffer) Read(n int, w io.Writer) {
 	p := b.R.n
+	//b.R := b.R
 	for n > 0 {
-		// 临界节点读 锁定当前写指针
-		b.mu.Lock()
-		writePointer := b.W
-		b.mu.Unlock()
-		readPointer := b.R
+		// 锁定当前写指针
+		//b.writeMu.Lock()
+		//b.W := b.W
+		//b.writeMu.Unlock()
+		// 临界节点读
 		if b.R.n == b.W.n {
 			// 当前内容足够读长度
-			if writePointer.offset-readPointer.offset >= n {
-				_, _ = w.Write(p.Content[readPointer.offset : readPointer.offset+n])
-				readPointer.offset += n
+			if b.W.offset-b.R.offset >= n {
+				_, _ = w.Write(p.Content[b.R.offset : b.R.offset+n])
+				b.R.offset += n
 				n = 0
-			} else if writePointer.offset == readPointer.offset {
+				b.writeCond.Broadcast()
+			} else if b.W.offset == b.R.offset {
 				// 当前读指针与写指针处于同一位置，等待
+				b.readCond.L.Lock()
 				b.readCond.Wait()
+				b.readCond.L.Unlock()
 				continue
 			} else {
 				// 当前不足够读，有多少读多少
-				_, _ = w.Write(p.Content[readPointer.offset:writePointer.offset])
-				readPointer.offset = writePointer.offset
-				n -= writePointer.offset - readPointer.offset
+				// TODO: b.W 指针未锁定
+				_, _ = w.Write(p.Content[b.R.offset:b.W.offset])
+				b.R.offset = b.W.offset
+				n -= b.W.offset - b.R.offset
+				b.writeCond.Broadcast()
 			}
 		} else {
 			// 未到临界点，足够读
-			if n > b.NodeLen-readPointer.offset {
+			if n >= b.NodeLen-b.R.offset {
 				// 当前节点内容全部读入
-				_, _ = w.Write(p.Content[readPointer.offset:])
-				n -= b.NodeLen - readPointer.offset
+				_, _ = w.Write(p.Content[b.R.offset:])
+				n -= b.NodeLen - b.R.offset
 				p = p.Next
-				readPointer.n = p
-				readPointer.offset = 0
+				b.R.n = p
+				b.R.offset = 0
+				b.writeCond.Broadcast()
 			} else {
 				// 当前节点部分读入
-				_, _ = w.Write(p.Content[readPointer.offset : readPointer.offset+n])
-				readPointer.offset += n
+				_, _ = w.Write(p.Content[b.R.offset : b.R.offset+n])
+				b.R.offset += n
 				n = 0
+				b.writeCond.Broadcast()
 			}
 		}
 	}
-	b.R.n = p
+	b.R = b.R
 }

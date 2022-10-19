@@ -1,8 +1,9 @@
 go 1.18
 
 use (
+	./buffer
 	./client
 	./communication
-	./util
 	./server
+	./util
 )
